@@ -24,6 +24,8 @@ import '../screens/home/settings_screen.dart';
 import '../screens/messages/chat_screen.dart';
 import '../screens/practice/ai_practice_session_screen.dart';
 import '../screens/practice/session_setup_screen.dart';
+import '../screens/quran/quran_player_screen.dart';
+import '../screens/quran/quran_screen.dart';
 import '../widgets/main_shell.dart';
 
 // Bridges Riverpod auth state to a GoRouter-compatible Listenable so the
@@ -146,7 +148,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/home/help',
             builder: (_, __) => const HelpScreen(),
           ),
+          // Quran tab (inside ShellRoute so bottom nav stays visible)
+          GoRoute(
+            path: '/quran',
+            builder: (_, __) => const QuranScreen(),
+          ),
         ],
+      ),
+      // Quran player — full screen (no bottom nav)
+      GoRoute(
+        path: '/quran/player',
+        builder: (_, state) {
+          final surah = state.extra as dynamic;
+          if (surah == null) {
+            return const QuranScreen();
+          }
+          return QuranPlayerScreen(surah: surah);
+        },
       ),
       GoRoute(
         path: '/live/viewer',

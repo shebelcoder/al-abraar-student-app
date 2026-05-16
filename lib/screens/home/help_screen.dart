@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 
 class HelpScreen extends StatefulWidget {
@@ -12,51 +13,32 @@ class HelpScreen extends StatefulWidget {
 class _HelpScreenState extends State<HelpScreen> {
   int? _expanded;
 
-  static const _faqs = [
-    _FAQ(
-      q: 'How do I join a live class?',
-      a: "Go to My Schedule and tap the 'Join' button on your upcoming session card. Make sure you're on time — the button becomes active 5 minutes before the class starts.",
-    ),
-    _FAQ(
-      q: 'How is my AI practice session scored?',
-      a: 'The AI listens to your recitation and compares it to the reference text. You can also self-assess using the Correct / Small Mistake / Wrong buttons. Your score and accuracy are saved to your progress.',
-    ),
-    _FAQ(
-      q: 'How do I message my teacher?',
-      a: "Open the Messages tab from the bottom navigation. Tap on your teacher's name to open the conversation. All your teachers are listed there.",
-    ),
-    _FAQ(
-      q: 'What are badges and how do I earn them?',
-      a: 'Badges are rewards for achieving milestones — like completing a surah, maintaining a streak, or getting a high score. Visit My Badges from your Profile to see what you can earn next.',
-    ),
-    _FAQ(
-      q: 'My attendance is marked incorrectly. What do I do?',
-      a: 'Please contact your teacher directly via the Messages tab. They can update your attendance record. You can also raise it in class.',
-    ),
-    _FAQ(
-      q: 'How do I reset my password?',
-      a: 'Go to Profile → Settings → Change Password. If you have forgotten your password, use the Forgot Password option on the login screen.',
-    ),
-    _FAQ(
-      q: 'Can I use the app without an internet connection?',
-      a: 'Some features like your schedule and recent progress are available offline. However, live classes, AI practice, and messaging require an internet connection.',
-    ),
-  ];
-
-  static const _contacts = [
-    _Contact(Icons.email_outlined, 'Email Support',
-        'support@alabraar.com', Color(0xFF6366F1)),
-    _Contact(Icons.chat_bubble_outlined, 'Live Chat',
-        'Available Mon–Fri, 9 AM – 6 PM', AppTheme.primaryGreen),
-    _Contact(Icons.phone_outlined, 'Phone',
-        '+44 20 1234 5678', AppTheme.goldAccent),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+
+    final faqs = [
+      _FAQ(q: l.help_faq1Q, a: l.help_faq1A),
+      _FAQ(q: l.help_faq2Q, a: l.help_faq2A),
+      _FAQ(q: l.help_faq3Q, a: l.help_faq3A),
+      _FAQ(q: l.help_faq4Q, a: l.help_faq4A),
+      _FAQ(q: l.help_faq5Q, a: l.help_faq5A),
+      _FAQ(q: l.help_faq6Q, a: l.help_faq6A),
+      _FAQ(q: l.help_faq7Q, a: l.help_faq7A),
+    ];
+
+    final contacts = [
+      _Contact(Icons.email_outlined, l.help_contact_email,
+          'support@alabraar.com', const Color(0xFF6366F1)),
+      _Contact(Icons.chat_bubble_outlined, l.help_contact_chat,
+          l.help_contact_chatHours, AppTheme.primaryGreen),
+      _Contact(Icons.phone_outlined, l.help_contact_phone,
+          '+44 20 1234 5678', AppTheme.goldAccent),
+    ];
+
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
-      appBar: AppBar(title: const Text('Help & Support')),
+      appBar: AppBar(title: Text(l.help_appBarTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -73,19 +55,19 @@ class _HelpScreenState extends State<HelpScreen> {
             ),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('How can we help?',
-                          style: TextStyle(
+                      Text(l.help_heroTitle,
+                          style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
                               fontWeight: FontWeight.w800)),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Find answers below or contact our\nsupport team.',
-                        style: TextStyle(
+                        l.help_heroBody,
+                        style: const TextStyle(
                             color: Colors.white70, fontSize: 13, height: 1.4),
                       ),
                     ],
@@ -99,13 +81,13 @@ class _HelpScreenState extends State<HelpScreen> {
           const SizedBox(height: 24),
 
           // FAQ
-          const Text('Frequently Asked Questions',
-              style: TextStyle(
+          Text(l.help_faqHeader,
+              style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textDark)),
           const SizedBox(height: 12),
-          ...List.generate(_faqs.length, (i) {
+          ...List.generate(faqs.length, (i) {
             final open = _expanded == i;
             return GestureDetector(
               onTap: () =>
@@ -138,7 +120,7 @@ class _HelpScreenState extends State<HelpScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              _faqs[i].q,
+                              faqs[i].q,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -164,7 +146,7 @@ class _HelpScreenState extends State<HelpScreen> {
                         padding: const EdgeInsets.fromLTRB(
                             16, 0, 16, 16),
                         child: Text(
-                          _faqs[i].a,
+                          faqs[i].a,
                           style: const TextStyle(
                             fontSize: 13,
                             color: AppTheme.textSecondary,
@@ -180,18 +162,18 @@ class _HelpScreenState extends State<HelpScreen> {
           const SizedBox(height: 24),
 
           // Contact options
-          const Text('Contact Us',
-              style: TextStyle(
+          Text(l.help_contactHeader,
+              style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textDark)),
           const SizedBox(height: 12),
-          ..._contacts.map((c) => GestureDetector(
+          ...contacts.map((c) => GestureDetector(
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: c.detail));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('${c.label} copied'),
+                      content: Text(l.help_copiedSnackbar(c.label)),
                       behavior: SnackBarBehavior.floating,
                       backgroundColor: AppTheme.primaryGreen,
                       shape: RoundedRectangleBorder(

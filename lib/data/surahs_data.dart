@@ -14,14 +14,14 @@ class SurahData {
   final String name;
   final String arabicName;
   final String meaning;
-  final String difficulty; // 'Beginner' | 'Intermediate'
+  final bool isBeginner;
   final List<AyahData> ayahs;
   const SurahData({
     required this.number,
     required this.name,
     required this.arabicName,
     required this.meaning,
-    required this.difficulty,
+    required this.isBeginner,
     required this.ayahs,
   });
   int get ayahCount => ayahs.length;
@@ -33,7 +33,7 @@ const List<SurahData> practiseSurahs = [
     name: 'Al-Fatiha',
     arabicName: 'الفاتحة',
     meaning: 'The Opening',
-    difficulty: 'Beginner',
+    isBeginner: true,
     ayahs: [
       AyahData(
         arabic: 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ',
@@ -80,7 +80,7 @@ const List<SurahData> practiseSurahs = [
     name: 'Al-Ikhlas',
     arabicName: 'الإخلاص',
     meaning: 'Sincerity',
-    difficulty: 'Beginner',
+    isBeginner: true,
     ayahs: [
       AyahData(
         arabic: 'قُلۡ هُوَ ٱللَّهُ أَحَدٌ',
@@ -109,7 +109,7 @@ const List<SurahData> practiseSurahs = [
     name: 'Al-Falaq',
     arabicName: 'الفلق',
     meaning: 'The Daybreak',
-    difficulty: 'Beginner',
+    isBeginner: true,
     ayahs: [
       AyahData(
         arabic: 'قُلۡ أَعُوذُ بِرَبِّ ٱلۡفَلَقِ',
@@ -143,7 +143,7 @@ const List<SurahData> practiseSurahs = [
     name: 'An-Nas',
     arabicName: 'الناس',
     meaning: 'Mankind',
-    difficulty: 'Beginner',
+    isBeginner: true,
     ayahs: [
       AyahData(
         arabic: 'قُلۡ أَعُوذُ بِرَبِّ ٱلنَّاسِ',
@@ -182,7 +182,7 @@ const List<SurahData> practiseSurahs = [
     name: 'An-Nasr',
     arabicName: 'النصر',
     meaning: 'The Victory',
-    difficulty: 'Intermediate',
+    isBeginner: false,
     ayahs: [
       AyahData(
         arabic: 'إِذَا جَآءَ نَصۡرُ ٱللَّهِ وَٱلۡفَتۡحُ',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/guest_lock_screen.dart';
@@ -56,14 +57,14 @@ class _MarksScreenState extends ConsumerState<MarksScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     if (ref.watch(isGuestProvider)) {
       return Scaffold(
         backgroundColor: AppTheme.warmBackground,
-        appBar: AppBar(title: const Text('My Marks')),
-        body: const GuestLockScreen(
-          featureName: 'Your Marks',
-          description:
-              'Sign in to view your assessment\nresults and subject grades.',
+        appBar: AppBar(title: Text(l.marks_appBarTitle)),
+        body: GuestLockScreen(
+          featureName: l.marks_guestFeatureName,
+          description: l.marks_guestDesc,
           icon: Icons.grade_rounded,
         ),
       );
@@ -71,15 +72,15 @@ class _MarksScreenState extends ConsumerState<MarksScreen>
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
-        title: const Text('My Marks'),
+        title: Text(l.marks_appBarTitle),
         bottom: TabBar(
           controller: _tabCtrl,
           labelColor: AppTheme.primaryGreen,
           unselectedLabelColor: AppTheme.textSecondary,
           indicatorColor: AppTheme.primaryGreen,
-          tabs: const [
-            Tab(text: 'Recent'),
-            Tab(text: 'By Subject'),
+          tabs: [
+            Tab(text: l.marks_tabRecent),
+            Tab(text: l.marks_tabBySubject),
           ],
         ),
       ),
@@ -94,17 +95,17 @@ class _MarksScreenState extends ConsumerState<MarksScreen>
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _StatChip(
-                    label: 'Average',
+                    label: l.marks_statAverage,
                     value: '${_average.round()}%',
                     color: _gradeColor(_average.round())),
                 _vDivider(),
                 _StatChip(
-                    label: 'Best',
+                    label: l.marks_statBest,
                     value: '$_highest%',
                     color: AppTheme.successGreen),
                 _vDivider(),
                 _StatChip(
-                    label: 'Tests',
+                    label: l.marks_statTests,
                     value: '${_assessments.length}',
                     color: AppTheme.primaryGreen),
               ],
@@ -127,7 +128,7 @@ class _MarksScreenState extends ConsumerState<MarksScreen>
                 ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    ..._subjects.map((s) => _SubjectCard(s: s)),
+                    ..._subjects.map((s) => _SubjectCard(s: s, l: l)),
                     const SizedBox(height: 80),
                   ],
                 ),
@@ -223,7 +224,8 @@ class _AssessmentCard extends StatelessWidget {
 
 class _SubjectCard extends StatelessWidget {
   final _Subject s;
-  const _SubjectCard({required this.s});
+  final AppLocalizations l;
+  const _SubjectCard({required this.s, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -264,7 +266,7 @@ class _SubjectCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text('${s.tests} test${s.tests == 1 ? '' : 's'}',
+                Text(l.marks_testCount(s.tests),
                     style: const TextStyle(
                         fontSize: 12,
                         color: AppTheme.textSecondary)),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 
 const _myRank = 4;
@@ -11,11 +12,8 @@ class LeaderboardScreen extends StatefulWidget {
 }
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
-  int _periodIndex = 0; // 0=Weekly, 1=Monthly, 2=All Time
+  int _periodIndex = 0;
 
-  static const _periods = ['Weekly', 'Monthly', 'All Time'];
-
-  // Different data per period
   static const _data = [
     // Weekly
     [
@@ -56,31 +54,33 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final periods = [
+      l.leaderboard_periodWeekly,
+      l.leaderboard_periodMonthly,
+      l.leaderboard_periodAllTime,
+    ];
     final top3 = _players.take(3).toList();
     final rest = _players.skip(3).toList();
 
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
-      appBar: AppBar(
-        title: const Text('Leaderboard'),
-      ),
+      appBar: AppBar(title: Text(l.leaderboard_appBarTitle)),
       body: Column(
         children: [
-          // Period selector
           Container(
             color: AppTheme.surfaceWhite,
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 12),
             child: Row(
-              children: List.generate(_periods.length, (i) {
+              children: List.generate(periods.length, (i) {
                 final selected = i == _periodIndex;
                 return Expanded(
                   child: GestureDetector(
                     onTap: () => setState(() => _periodIndex = i),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      margin: EdgeInsets.only(
-                          left: i > 0 ? 8 : 0),
+                      margin: EdgeInsets.only(left: i > 0 ? 8 : 0),
                       padding:
                           const EdgeInsets.symmetric(vertical: 9),
                       decoration: BoxDecoration(
@@ -90,7 +90,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        _periods[i],
+                        periods[i],
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 13,
@@ -110,10 +110,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Podium
-                _Podium(top3: top3),
+                _Podium(top3: top3, l: l),
                 const SizedBox(height: 20),
-                // Rest of list
                 ...rest.asMap().entries.map((e) {
                   final rank = e.key + 4;
                   final isMe = rank == _myRank;
@@ -121,6 +119,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     player: e.value,
                     rank: rank,
                     isMe: isMe,
+                    l: l,
                   );
                 }),
                 const SizedBox(height: 80),
@@ -137,7 +136,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
 class _Podium extends StatelessWidget {
   final List<_Player> top3;
-  const _Podium({required this.top3});
+  final AppLocalizations l;
+  const _Podium({required this.top3, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -154,9 +154,9 @@ class _Podium extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Text(
-            'Top Recitors',
-            style: TextStyle(
+          Text(
+            l.leaderboard_podiumTitle,
+            style: const TextStyle(
               color: Colors.white70,
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -166,21 +166,9 @@ class _Podium extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // 2nd place
-              Expanded(
-                child: _PodiumSlot(
-                    player: top3[1], rank: 2, height: 72),
-              ),
-              // 1st place
-              Expanded(
-                child: _PodiumSlot(
-                    player: top3[0], rank: 1, height: 92),
-              ),
-              // 3rd place
-              Expanded(
-                child: _PodiumSlot(
-                    player: top3[2], rank: 3, height: 56),
-              ),
+              Expanded(child: _PodiumSlot(player: top3[1], rank: 2, height: 72)),
+              Expanded(child: _PodiumSlot(player: top3[0], rank: 1, height: 92)),
+              Expanded(child: _PodiumSlot(player: top3[2], rank: 3, height: 56)),
             ],
           ),
         ],
@@ -215,8 +203,7 @@ class _PodiumSlot extends StatelessWidget {
             color: player.color.withValues(alpha: 0.9),
             shape: BoxShape.circle,
             border: rank == 1
-                ? Border.all(
-                    color: AppTheme.goldAccent, width: 2.5)
+                ? Border.all(color: AppTheme.goldAccent, width: 2.5)
                 : null,
           ),
           child: Center(
@@ -242,16 +229,15 @@ class _PodiumSlot extends StatelessWidget {
         ),
         Text(
           '${player.points} pts',
-          style: const TextStyle(
-              color: Colors.white70, fontSize: 10),
+          style: const TextStyle(color: Colors.white70, fontSize: 10),
         ),
         const SizedBox(height: 8),
         Container(
           height: height,
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(8)),
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(8)),
           ),
           child: Center(
             child: Text(
@@ -275,19 +261,20 @@ class _RankRow extends StatelessWidget {
   final _Player player;
   final int rank;
   final bool isMe;
+  final AppLocalizations l;
 
   const _RankRow({
     required this.player,
     required this.rank,
     required this.isMe,
+    required this.l,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(
-          horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isMe
             ? AppTheme.primaryGreen.withValues(alpha: 0.06)
@@ -342,30 +329,26 @@ class _RankRow extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              isMe ? '${player.name} (You)' : player.name,
+              isMe
+                  ? '${player.name} ${l.leaderboard_youSuffix}'
+                  : player.name,
               style: TextStyle(
                 fontSize: 14,
-                fontWeight:
-                    isMe ? FontWeight.w700 : FontWeight.w600,
-                color: isMe
-                    ? AppTheme.primaryGreen
-                    : AppTheme.textDark,
+                fontWeight: isMe ? FontWeight.w700 : FontWeight.w600,
+                color: isMe ? AppTheme.primaryGreen : AppTheme.textDark,
               ),
             ),
           ),
           Row(
             children: [
-              const Text('⭐',
-                  style: TextStyle(fontSize: 13)),
+              const Text('⭐', style: TextStyle(fontSize: 13)),
               const SizedBox(width: 4),
               Text(
                 '${player.points}',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: isMe
-                      ? AppTheme.primaryGreen
-                      : AppTheme.textDark,
+                  color: isMe ? AppTheme.primaryGreen : AppTheme.textDark,
                 ),
               ),
             ],

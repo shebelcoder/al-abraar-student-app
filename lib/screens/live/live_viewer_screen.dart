@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 
 class LiveViewerScreen extends StatefulWidget {
@@ -37,7 +38,6 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
   final _random = Random();
   final List<_ChatMessage> _messages = [];
 
-  // Seed some initial messages
   static final _seedMessages = [
     _ChatMessage(name: 'Fatima Hassan', initials: 'FH',
         color: const Color(0xFF8B5CF6), text: 'Assalamu alaikum ustadh!', isMe: false),
@@ -57,7 +57,6 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() {
         _seconds++;
-        // Simulate viewer count fluctuation every 15 s
         if (_seconds % 15 == 0) {
           _viewerCount = max(4, _viewerCount + _random.nextInt(3) - 1);
         }
@@ -81,12 +80,12 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  void _sendQuestion() {
+  void _sendQuestion(AppLocalizations l) {
     final text = _questionCtrl.text.trim();
     if (text.isEmpty) return;
     setState(() {
       _messages.add(_ChatMessage(
-        name: 'You',
+        name: l.common_you,
         initials: 'ME',
         color: AppTheme.primaryGreen,
         text: text,
@@ -106,10 +105,10 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
     });
   }
 
-  void _toggleHand() {
+  void _toggleHand(AppLocalizations l) {
     setState(() => _handRaised = !_handRaised);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(_handRaised ? 'Hand raised ✋' : 'Hand lowered'),
+      content: Text(_handRaised ? l.live_handRaised : l.live_handLowered),
       backgroundColor: _handRaised ? AppTheme.goldAccent : AppTheme.textSecondary,
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 1),
@@ -117,22 +116,22 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
     ));
   }
 
-  Future<bool> _onLeave() async {
+  Future<bool> _onLeave(AppLocalizations l) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Leave Session?'),
-        content: const Text('Are you sure you want to leave the live session?'),
+        title: Text(l.live_leaveTitle),
+        content: Text(l.live_leaveBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Stay'),
+            child: Text(l.live_stay),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Leave',
-                style: TextStyle(color: AppTheme.errorRed)),
+            child: Text(l.live_leave,
+                style: const TextStyle(color: AppTheme.errorRed)),
           ),
         ],
       ),
@@ -142,11 +141,12 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        if (await _onLeave() && context.mounted) Navigator.pop(context);
+        if (await _onLeave(l) && context.mounted) Navigator.pop(context);
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -158,9 +158,9 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                 flex: 5,
                 child: Stack(
                   children: [
-                    // Teacher avatar (simulated feed)
                     Container(
                       width: double.infinity,
+                      height: double.infinity,
                       color: const Color(0xFF111827),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -209,7 +209,6 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                       right: 12,
                       child: Row(
                         children: [
-                          // LIVE badge
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
@@ -217,15 +216,14 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                               color: Colors.red,
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Text('LIVE',
-                                style: TextStyle(
+                            child: Text(l.live_badge,
+                                style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 1)),
                           ),
                           const SizedBox(width: 8),
-                          // Timer
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
@@ -240,7 +238,6 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                                     fontWeight: FontWeight.w600)),
                           ),
                           const Spacer(),
-                          // Viewer count
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
@@ -262,10 +259,9 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                             ),
                           ),
                           const SizedBox(width: 8),
-                          // Leave button
                           GestureDetector(
                             onTap: () async {
-                              if (await _onLeave() && context.mounted) {
+                              if (await _onLeave(l) && context.mounted) {
                                 Navigator.pop(context);
                               }
                             },
@@ -276,8 +272,8 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                                 color: AppTheme.errorRed,
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text('Leave',
-                                  style: TextStyle(
+                              child: Text(l.live_leave,
+                                  style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600)),
@@ -298,7 +294,7 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                             icon: _isMuted
                                 ? Icons.mic_off_rounded
                                 : Icons.mic_rounded,
-                            label: _isMuted ? 'Unmute' : 'Muted',
+                            label: _isMuted ? l.live_unmute : l.live_muted,
                             active: !_isMuted,
                             onTap: () => setState(() => _isMuted = !_isMuted),
                           ),
@@ -307,10 +303,10 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                             icon: _handRaised
                                 ? Icons.back_hand_rounded
                                 : Icons.back_hand_outlined,
-                            label: _handRaised ? 'Lower' : 'Raise',
+                            label: _handRaised ? l.live_lowerHand : l.live_raiseHand,
                             active: _handRaised,
                             activeColor: AppTheme.goldAccent,
-                            onTap: _toggleHand,
+                            onTap: () => _toggleHand(l),
                           ),
                         ],
                       ),
@@ -326,7 +322,6 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                   color: const Color(0xFF1A1A2E),
                   child: Column(
                     children: [
-                      // Header
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
                         child: Row(
@@ -334,20 +329,19 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                             const Icon(Icons.chat_bubble_rounded,
                                 size: 14, color: Colors.white54),
                             const SizedBox(width: 6),
-                            const Text('Questions & Chat',
-                                style: TextStyle(
+                            Text(l.live_chatHeader,
+                                style: const TextStyle(
                                     color: Colors.white70,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600)),
                             const Spacer(),
-                            Text('${_messages.length} messages',
+                            Text(l.live_messages(_messages.length),
                                 style: const TextStyle(
                                     color: Colors.white38, fontSize: 11)),
                           ],
                         ),
                       ),
                       const Divider(height: 1, color: Colors.white10),
-                      // Messages
                       Expanded(
                         child: ListView.builder(
                           controller: _scrollCtrl,
@@ -355,10 +349,9 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                               horizontal: 12, vertical: 8),
                           itemCount: _messages.length,
                           itemBuilder: (_, i) =>
-                              _MessageBubble(msg: _messages[i]),
+                              _MessageBubble(msg: _messages[i], l: l),
                         ),
                       ),
-                      // Input
                       Container(
                         color: const Color(0xFF111124),
                         padding: EdgeInsets.fromLTRB(
@@ -375,9 +368,9 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                                 style: const TextStyle(
                                     color: Colors.white, fontSize: 14),
                                 textInputAction: TextInputAction.send,
-                                onSubmitted: (_) => _sendQuestion(),
+                                onSubmitted: (_) => _sendQuestion(l),
                                 decoration: InputDecoration(
-                                  hintText: 'Ask a question…',
+                                  hintText: l.live_inputHint,
                                   hintStyle: const TextStyle(
                                       color: Colors.white38, fontSize: 13),
                                   filled: true,
@@ -402,7 +395,7 @@ class _LiveViewerScreenState extends State<LiveViewerScreen>
                             ),
                             const SizedBox(width: 8),
                             GestureDetector(
-                              onTap: _sendQuestion,
+                              onTap: () => _sendQuestion(l),
                               child: Container(
                                 width: 40,
                                 height: 40,
@@ -479,7 +472,8 @@ class _ControlButton extends StatelessWidget {
 
 class _MessageBubble extends StatelessWidget {
   final _ChatMessage msg;
-  const _MessageBubble({required this.msg});
+  final AppLocalizations l;
+  const _MessageBubble({required this.msg, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -511,7 +505,7 @@ class _MessageBubble extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  msg.isMe ? 'You' : msg.name,
+                  msg.isMe ? l.common_you : msg.name,
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,

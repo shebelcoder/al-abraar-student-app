@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 
@@ -46,7 +47,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             region: _regionCtrl.text.trim(),
             isParentRegistering: _isParentRegistering,
           );
-      // AuthNotifier sets isLoggedIn=true → router redirects to dashboard
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -66,10 +66,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
-        title: const Text('Create Account'),
+        title: Text(l.auth_register_appBarTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => context.go('/login'),
@@ -83,39 +84,39 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Join Al-Abraar',
-                  style: TextStyle(
+                Text(
+                  l.auth_register_heading,
+                  style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
                     color: AppTheme.textDark,
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Start your Quran learning journey',
-                  style: TextStyle(
+                Text(
+                  l.auth_register_subtitle,
+                  style: const TextStyle(
                     fontSize: 14,
                     color: AppTheme.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 28),
-                _buildLabel('Full Name'),
+                _buildLabel(l.auth_register_nameLabel),
                 TextFormField(
                   controller: _nameCtrl,
                   textCapitalization: TextCapitalization.words,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Abdullah Ahmad',
-                    prefixIcon:
-                        Icon(Icons.person_outline, color: AppTheme.primaryGreen),
+                    prefixIcon: const Icon(Icons.person_outline,
+                        color: AppTheme.primaryGreen),
                   ),
                   validator: (v) => v == null || v.trim().isEmpty
-                      ? 'Please enter your name'
+                      ? l.auth_register_nameEmpty
                       : null,
                 ),
                 const SizedBox(height: 16),
-                _buildLabel('Email Address'),
+                _buildLabel(l.auth_register_emailLabel),
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
@@ -126,19 +127,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         color: AppTheme.primaryGreen),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please enter email';
-                    if (!v.contains('@')) return 'Enter a valid email';
+                    if (v == null || v.isEmpty) {
+                      return l.auth_register_emailEmpty;
+                    }
+                    if (!v.contains('@')) {
+                      return l.auth_register_emailInvalid;
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                _buildLabel('Password'),
+                _buildLabel(l.auth_register_passwordLabel),
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: _obscurePassword,
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
-                    hintText: 'At least 8 characters',
+                    hintText: l.auth_register_passwordHint,
                     prefixIcon: const Icon(Icons.lock_outline,
                         color: AppTheme.primaryGreen),
                     suffixIcon: IconButton(
@@ -148,35 +153,43 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             : Icons.visibility_off_outlined,
                         color: AppTheme.textSecondary,
                       ),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please enter password';
-                    if (v.length < 8) return 'Password must be at least 8 characters';
+                    if (v == null || v.isEmpty) {
+                      return l.auth_register_passwordEmpty;
+                    }
+                    if (v.length < 8) {
+                      return l.auth_register_passwordShort;
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                _buildLabel('Confirm Password'),
+                _buildLabel(l.auth_register_confirmLabel),
                 TextFormField(
                   controller: _confirmPasswordCtrl,
                   obscureText: true,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    hintText: 'Re-enter password',
-                    prefixIcon: Icon(Icons.lock_outline,
+                  decoration: InputDecoration(
+                    hintText: l.auth_register_confirmLabel,
+                    prefixIcon: const Icon(Icons.lock_outline,
                         color: AppTheme.primaryGreen),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please confirm password';
-                    if (v != _passwordCtrl.text) return 'Passwords do not match';
+                    if (v == null || v.isEmpty) {
+                      return l.auth_register_confirmEmpty;
+                    }
+                    if (v != _passwordCtrl.text) {
+                      return l.auth_register_confirmMismatch;
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-                _buildLabel('Region / Country'),
+                _buildLabel(l.auth_register_regionLabel),
                 TextFormField(
                   controller: _regionCtrl,
                   textInputAction: TextInputAction.next,
@@ -185,56 +198,59 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     prefixIcon: Icon(Icons.location_on_outlined,
                         color: AppTheme.primaryGreen),
                   ),
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? 'Please enter your region' : null,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? l.auth_register_regionEmpty
+                      : null,
                 ),
                 const SizedBox(height: 16),
-                _buildLabel('Age'),
+                _buildLabel(l.auth_register_ageLabel),
                 TextFormField(
                   controller: _ageCtrl,
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    hintText: 'Your age',
-                    prefixIcon: Icon(Icons.cake_outlined,
+                  decoration: InputDecoration(
+                    hintText: l.auth_register_ageLabel,
+                    prefixIcon: const Icon(Icons.cake_outlined,
                         color: AppTheme.primaryGreen),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please enter your age';
+                    if (v == null || v.isEmpty) {
+                      return l.auth_register_ageEmpty;
+                    }
                     final age = int.tryParse(v);
                     if (age == null || age < 3 || age > 100) {
-                      return 'Enter a valid age';
+                      return l.auth_register_ageInvalid;
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
-                // Parent toggle
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: AppTheme.surfaceWhite,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                    border:
+                        Border.all(color: const Color(0xFFE5E7EB)),
                   ),
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "I'm a parent registering my child",
-                              style: TextStyle(
+                              l.auth_register_parentToggle,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: AppTheme.textDark,
                               ),
                             ),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             Text(
-                              'Account will need parental approval',
-                              style: TextStyle(
+                              l.auth_register_parentApproval,
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.textSecondary,
                               ),
@@ -244,8 +260,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                       Switch(
                         value: _isParentRegistering,
-                        onChanged: (v) =>
-                            setState(() => _isParentRegistering = v),
+                        onChanged: (v) => setState(
+                            () => _isParentRegistering = v),
                         activeThumbColor: AppTheme.primaryGreen,
                       ),
                     ],
@@ -266,22 +282,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               strokeWidth: 2.5,
                             ),
                           )
-                        : const Text('Create Account'),
+                        : Text(l.auth_register_button),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Already have an account? ',
-                      style: TextStyle(color: AppTheme.textSecondary),
+                    Text(
+                      l.auth_register_alreadyHaveAccount,
+                      style: const TextStyle(
+                          color: AppTheme.textSecondary),
                     ),
                     GestureDetector(
                       onTap: () => context.go('/login'),
-                      child: const Text(
-                        'Login',
-                        style: TextStyle(
+                      child: Text(
+                        l.auth_login_button,
+                        style: const TextStyle(
                           color: AppTheme.primaryGreen,
                           fontWeight: FontWeight.w700,
                         ),

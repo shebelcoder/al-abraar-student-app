@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/locale_provider.dart';
 import '../../theme/app_theme.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -19,14 +21,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final authState = ref.watch(authStateProvider);
     final user = authState.valueOrNull?.user;
     final name = (user?['name'] as String?) ?? 'Abdullah Ahmad';
     final email = (user?['email'] as String?) ?? 'student@alabraar.com';
+    final currentLocale = ref.watch(localeProvider);
+
+    // Native language names — never translated
+    final currentLangName = supportedLocaleNames.entries
+        .firstWhere((e) => e.value == currentLocale,
+            orElse: () => supportedLocaleNames.entries.first)
+        .key;
 
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l.settings_appBarTitle)),
       body: ListView(
         children: [
           // Profile card
@@ -83,9 +93,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => _showEditProfile(context, name, email),
-                  child: const Text('Edit',
-                      style: TextStyle(
+                  onPressed: () => _showEditProfile(context, name, email, l),
+                  child: Text(l.settings_editButton,
+                      style: const TextStyle(
                           color: AppTheme.primaryGreen,
                           fontWeight: FontWeight.w600)),
                 ),
@@ -94,64 +104,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
 
           // Notifications
-          _SectionLabel(label: 'Notifications'),
+          _SectionLabel(label: l.settings_sectionNotifications),
           _ToggleTile(
             icon: Icons.alarm_rounded,
             color: AppTheme.primaryGreen,
-            title: 'Class Reminders',
-            subtitle: 'Get notified 30 minutes before class',
+            title: l.settings_classRemindersTitle,
+            subtitle: l.settings_classRemindersSubtitle,
             value: _classReminders,
             onChanged: (v) => setState(() => _classReminders = v),
           ),
           _ToggleTile(
             icon: Icons.emoji_events_rounded,
             color: AppTheme.goldAccent,
-            title: 'Achievement Alerts',
-            subtitle: 'Notify when you earn a badge',
+            title: l.settings_achievementAlertsTitle,
+            subtitle: l.settings_achievementAlertsSubtitle,
             value: _achievementAlerts,
             onChanged: (v) => setState(() => _achievementAlerts = v),
           ),
           _ToggleTile(
             icon: Icons.chat_bubble_rounded,
             color: const Color(0xFF0EA5E9),
-            title: 'Teacher Messages',
-            subtitle: 'Notify on new messages from teachers',
+            title: l.settings_teacherMessagesTitle,
+            subtitle: l.settings_teacherMessagesSubtitle,
             value: _teacherMessages,
             onChanged: (v) => setState(() => _teacherMessages = v),
           ),
           _ToggleTile(
             icon: Icons.self_improvement_rounded,
             color: const Color(0xFF8B5CF6),
-            title: 'Practice Reminders',
-            subtitle: 'Daily reminder to maintain your streak',
+            title: l.settings_practiceRemindersTitle,
+            subtitle: l.settings_practiceRemindersSubtitle,
             value: _practiceReminders,
             onChanged: (v) => setState(() => _practiceReminders = v),
           ),
 
           // Account
-          _SectionLabel(label: 'Account'),
+          _SectionLabel(label: l.settings_sectionAccount),
           _ActionTile(
             icon: Icons.lock_outline_rounded,
             color: const Color(0xFF6366F1),
-            title: 'Change Password',
-            onTap: () => _showChangePassword(context),
+            title: l.settings_changePassword,
+            onTap: () => _showChangePassword(context, l),
           ),
           _ActionTile(
             icon: Icons.language_rounded,
             color: const Color(0xFF0EA5E9),
-            title: 'Language',
-            trailing: const Text('English',
-                style: TextStyle(
+            title: l.settings_language,
+            trailing: Text(currentLangName,
+                style: const TextStyle(
                     color: AppTheme.textSecondary, fontSize: 14)),
-            onTap: () => _showLanguagePicker(context),
+            onTap: () => _showLanguagePicker(context, l),
           ),
 
           // About
-          _SectionLabel(label: 'About'),
+          _SectionLabel(label: l.settings_sectionAbout),
           _ActionTile(
             icon: Icons.info_outline_rounded,
             color: AppTheme.textSecondary,
-            title: 'App Version',
+            title: l.settings_appVersion,
             trailing: const Text('1.0.0',
                 style: TextStyle(
                     color: AppTheme.textSecondary, fontSize: 14)),
@@ -160,26 +170,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _ActionTile(
             icon: Icons.privacy_tip_outlined,
             color: AppTheme.textSecondary,
-            title: 'Privacy Policy',
-            onTap: () => _showTextModal(context, 'Privacy Policy',
-                _privacyText),
+            title: l.settings_privacyPolicy,
+            onTap: () => _showTextModal(
+                context, l.settings_privacyPolicy, l.settings_privacyBody),
           ),
           _ActionTile(
             icon: Icons.description_outlined,
             color: AppTheme.textSecondary,
-            title: 'Terms of Service',
-            onTap: () =>
-                _showTextModal(context, 'Terms of Service', _termsText),
+            title: l.settings_termsOfService,
+            onTap: () => _showTextModal(
+                context, l.settings_termsOfService, l.settings_termsBody),
           ),
 
           // Danger zone
-          _SectionLabel(label: 'Account Actions'),
+          _SectionLabel(label: l.settings_sectionAccountActions),
           _ActionTile(
             icon: Icons.logout_rounded,
             color: AppTheme.errorRed,
-            title: 'Sign Out',
+            title: l.settings_signOut,
             isDestructive: true,
-            onTap: () => _confirmLogout(context),
+            onTap: () => _confirmLogout(context, l),
           ),
 
           const SizedBox(height: 80),
@@ -188,30 +198,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  static const _privacyText =
-      'Al-Abraar collects only the information needed to provide your '
-      'learning experience: your name, email address, and usage data such '
-      'as attendance and practice scores.\n\n'
-      'We do not sell or share your personal data with third parties. '
-      'All data is encrypted in transit and at rest.\n\n'
-      'You may request deletion of your account and data at any time by '
-      'contacting support@alabraar.com.\n\n'
-      'This policy was last updated: May 2026.';
-
-  static const _termsText =
-      'By using Al-Abraar you agree to use the app solely for lawful '
-      'educational purposes.\n\n'
-      'You must not share your login credentials or attempt to access '
-      'another student\'s account.\n\n'
-      'All course materials, recordings, and content within the app are '
-      'the intellectual property of Al-Abraar Academy and may not be '
-      'reproduced without written permission.\n\n'
-      'Al-Abraar reserves the right to suspend accounts that violate '
-      'these terms.\n\n'
-      'Last updated: May 2026.';
-
-  void _showLanguagePicker(BuildContext context) {
-    const languages = ['English', 'Arabic', 'Urdu', 'French'];
+  void _showLanguagePicker(BuildContext context, AppLocalizations l) {
+    final currentLocale = ref.read(localeProvider);
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -224,30 +212,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Select Language',
-                style: TextStyle(
+            Text(l.settings_selectLanguage,
+                style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w800)),
             const SizedBox(height: 16),
-            ...languages.map((lang) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(lang,
-                      style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500)),
-                  trailing: lang == 'English'
-                      ? const Icon(Icons.check_rounded,
-                          color: AppTheme.primaryGreen)
-                      : null,
-                  onTap: () => Navigator.pop(context),
-                )),
+            ...supportedLocaleNames.entries.map((entry) {
+              final isSelected = entry.value == currentLocale;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(entry.key, // native name, never translated
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w500)),
+                trailing: isSelected
+                    ? const Icon(Icons.check_rounded,
+                        color: AppTheme.primaryGreen)
+                    : null,
+                onTap: () {
+                  ref
+                      .read(localeProvider.notifier)
+                      .setLocale(entry.value);
+                  Navigator.pop(context);
+                },
+              );
+            }),
           ],
         ),
       ),
     );
   }
 
-  void _showTextModal(
-      BuildContext context, String title, String body) {
+  void _showTextModal(BuildContext context, String title, String body) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -277,8 +271,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 16),
               Text(title,
                   style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
+                      fontSize: 18, fontWeight: FontWeight.w800)),
               const SizedBox(height: 16),
               Expanded(
                 child: SingleChildScrollView(
@@ -301,7 +294,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showEditProfile(
-      BuildContext context, String currentName, String currentEmail) {
+      BuildContext context, String currentName, String currentEmail, AppLocalizations l) {
     final nameCtrl = TextEditingController(text: currentName);
     final emailCtrl = TextEditingController(text: currentEmail);
     showModalBottomSheet(
@@ -318,19 +311,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Edit Profile',
-                style: TextStyle(
+            Text(l.settings_editProfileTitle,
+                style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w800)),
             const SizedBox(height: 20),
             TextField(
               controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'Full Name'),
+              decoration: InputDecoration(labelText: l.settings_fullNameLabel),
             ),
             const SizedBox(height: 14),
             TextField(
               controller: emailCtrl,
-              decoration:
-                  const InputDecoration(labelText: 'Email Address'),
+              decoration: InputDecoration(labelText: l.settings_emailLabel),
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -338,7 +330,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               height: 52,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Save Changes'),
+                child: Text(l.common_save),
               ),
             ),
           ],
@@ -347,7 +339,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showChangePassword(BuildContext context) {
+  void _showChangePassword(BuildContext context, AppLocalizations l) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -362,25 +354,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Change Password',
-                style: TextStyle(
+            Text(l.settings_changePasswordTitle,
+                style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w800)),
             const SizedBox(height: 20),
-            const TextField(
+            TextField(
               obscureText: true,
-              decoration:
-                  InputDecoration(labelText: 'Current Password'),
+              decoration: InputDecoration(
+                  labelText: l.settings_currentPasswordLabel),
             ),
             const SizedBox(height: 14),
-            const TextField(
+            TextField(
               obscureText: true,
-              decoration: InputDecoration(labelText: 'New Password'),
+              decoration: InputDecoration(labelText: l.settings_newPasswordLabel),
             ),
             const SizedBox(height: 14),
-            const TextField(
+            TextField(
               obscureText: true,
-              decoration:
-                  InputDecoration(labelText: 'Confirm New Password'),
+              decoration: InputDecoration(
+                  labelText: l.settings_confirmNewPasswordLabel),
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -388,7 +380,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               height: 52,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Update Password'),
+                child: Text(l.settings_updatePassword),
               ),
             ),
           ],
@@ -397,23 +389,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Future<void> _confirmLogout(BuildContext context) async {
+  Future<void> _confirmLogout(BuildContext context, AppLocalizations l) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
+        title: Text(l.settings_signOutTitle),
+        content: Text(l.settings_signOutBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l.common_cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sign Out',
-                style: TextStyle(color: AppTheme.errorRed)),
+            child: Text(l.settings_signOut,
+                style: const TextStyle(color: AppTheme.errorRed)),
           ),
         ],
       ),

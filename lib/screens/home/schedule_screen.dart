@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 
 class ScheduleScreen extends StatefulWidget {
@@ -11,9 +12,12 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen> {
   int _selectedDay = DateTime.now().weekday - 1; // 0 = Mon
 
-  static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  List<String> _days(AppLocalizations l) => [
+    l.schedule_mon, l.schedule_tue, l.schedule_wed,
+    l.schedule_thu, l.schedule_fri, l.schedule_sat, l.schedule_sun,
+  ];
 
-  void _showRequestSheet(BuildContext context) {
+  void _showRequestSheet(BuildContext context, AppLocalizations l) {
     final subjectCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
     String? selectedTeacher;
@@ -49,17 +53,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Request a Session',
-                  style: TextStyle(
+              Text(l.schedule_requestTitle,
+                  style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
-              const Text('Ask your teacher for an extra session',
-                  style: TextStyle(
+              Text(l.schedule_requestSubtitle,
+                  style: const TextStyle(
                       fontSize: 13, color: AppTheme.textSecondary)),
               const SizedBox(height: 20),
               DropdownButtonFormField<String>(
                 initialValue: selectedTeacher,
-                decoration: const InputDecoration(labelText: 'Teacher'),
+                decoration: InputDecoration(labelText: l.schedule_requestTeacherLabel),
                 items: teachers
                     .map((t) =>
                         DropdownMenuItem(value: t, child: Text(t)))
@@ -70,15 +74,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               const SizedBox(height: 14),
               TextField(
                 controller: subjectCtrl,
-                decoration: const InputDecoration(
-                    labelText: 'Subject / Topic'),
+                decoration: InputDecoration(
+                    labelText: l.schedule_requestSubjectLabel),
               ),
               const SizedBox(height: 14),
               TextField(
                 controller: noteCtrl,
                 maxLines: 2,
-                decoration: const InputDecoration(
-                    labelText: 'Additional notes (optional)'),
+                decoration: InputDecoration(
+                    labelText: l.schedule_requestNotesLabel),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -89,8 +93,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text(
-                            'Session request sent to your teacher.'),
+                        content: Text(l.schedule_requestSent),
                         backgroundColor: AppTheme.successGreen,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
@@ -98,7 +101,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       ),
                     );
                   },
-                  child: const Text('Send Request'),
+                  child: Text(l.schedule_sendRequest),
                 ),
               ),
             ],
@@ -110,85 +113,44 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   static const _schedule = {
     0: [
-      _Session(
-        time: '9:00 AM',
-        subject: 'Quran Recitation',
-        teacher: 'Sheikh Ahmed',
-        duration: '45 min',
-        status: 'Upcoming',
-      ),
-      _Session(
-        time: '4:00 PM',
-        subject: 'Arabic Language',
-        teacher: 'Ustadh Ali',
-        duration: '30 min',
-        status: 'Upcoming',
-      ),
+      _Session(time: '9:00 AM',  subject: 'Quran Recitation',   teacher: 'Sheikh Ahmed',   duration: '45 min', isCompleted: false),
+      _Session(time: '4:00 PM',  subject: 'Arabic Language',    teacher: 'Ustadh Ali',     duration: '30 min', isCompleted: false),
     ],
     1: [
-      _Session(
-        time: '10:00 AM',
-        subject: 'Tajweed Rules',
-        teacher: 'Sheikh Ahmed',
-        duration: '60 min',
-        status: 'Upcoming',
-      ),
+      _Session(time: '10:00 AM', subject: 'Tajweed Rules',      teacher: 'Sheikh Ahmed',   duration: '60 min', isCompleted: false),
     ],
     2: [
-      _Session(
-        time: '9:00 AM',
-        subject: 'Quran Memorisation',
-        teacher: 'Ustadha Fatima',
-        duration: '45 min',
-        status: 'Completed',
-      ),
-      _Session(
-        time: '3:00 PM',
-        subject: 'Islamic Studies',
-        teacher: 'Ustadh Omar',
-        duration: '30 min',
-        status: 'Upcoming',
-      ),
+      _Session(time: '9:00 AM',  subject: 'Quran Memorisation', teacher: 'Ustadha Fatima', duration: '45 min', isCompleted: true),
+      _Session(time: '3:00 PM',  subject: 'Islamic Studies',    teacher: 'Ustadh Omar',    duration: '30 min', isCompleted: false),
     ],
     3: [
-      _Session(
-        time: '4:30 PM',
-        subject: 'Quran Recitation',
-        teacher: 'Sheikh Ahmed',
-        duration: '45 min',
-        status: 'Upcoming',
-      ),
+      _Session(time: '4:30 PM',  subject: 'Quran Recitation',   teacher: 'Sheikh Ahmed',   duration: '45 min', isCompleted: false),
     ],
     4: [
-      _Session(
-        time: '11:00 AM',
-        subject: 'Arabic Vocabulary',
-        teacher: 'Ustadh Ali',
-        duration: '30 min',
-        status: 'Upcoming',
-      ),
+      _Session(time: '11:00 AM', subject: 'Arabic Vocabulary',  teacher: 'Ustadh Ali',     duration: '30 min', isCompleted: false),
     ],
   };
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final days = _days(l);
     final sessions = _schedule[_selectedDay] ?? [];
 
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
-        title: const Text('My Schedule'),
+        title: Text(l.schedule_appBarTitle),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded),
-            onPressed: () => _showRequestSheet(context),
+            onPressed: () => _showRequestSheet(context, l),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Day selector
           Container(
             color: AppTheme.surfaceWhite,
             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -196,7 +158,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
-                children: List.generate(_days.length, (index) {
+                children: List.generate(days.length, (index) {
                   final isSelected = index == _selectedDay;
                   return GestureDetector(
                     onTap: () =>
@@ -218,7 +180,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         ),
                       ),
                       child: Text(
-                        _days[index],
+                        days[index],
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
@@ -233,16 +195,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
             ),
           ),
-          // Sessions list
           Expanded(
             child: sessions.isEmpty
-                ? _EmptySchedule()
+                ? _EmptySchedule(l: l)
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: sessions.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (_, i) =>
-                        _SessionCard(session: sessions[i]),
+                        _SessionCard(session: sessions[i], l: l),
                   ),
           ),
         ],
@@ -253,11 +214,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
 class _SessionCard extends StatelessWidget {
   final _Session session;
-  const _SessionCard({required this.session});
+  final AppLocalizations l;
+  const _SessionCard({required this.session, required this.l});
 
   @override
   Widget build(BuildContext context) {
-    final isCompleted = session.status == 'Completed';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -273,7 +234,6 @@ class _SessionCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Time column
           Container(
             width: 64,
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -311,11 +271,11 @@ class _SessionCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: isCompleted
+                    color: session.isCompleted
                         ? AppTheme.textSecondary
                         : AppTheme.textDark,
                     decoration:
-                        isCompleted ? TextDecoration.lineThrough : null,
+                        session.isCompleted ? TextDecoration.lineThrough : null,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -343,7 +303,7 @@ class _SessionCard extends StatelessWidget {
               ],
             ),
           ),
-          _SessionAction(session: session),
+          _SessionAction(session: session, l: l),
         ],
       ),
     );
@@ -352,18 +312,19 @@ class _SessionCard extends StatelessWidget {
 
 class _SessionAction extends StatelessWidget {
   final _Session session;
-  const _SessionAction({required this.session});
+  final AppLocalizations l;
+  const _SessionAction({required this.session, required this.l});
 
   void _join(BuildContext context) {
     showDialog<void>(
       context: context,
-      builder: (ctx) => _JoinDialog(session: session),
+      builder: (ctx) => _JoinDialog(session: session, l: l),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (session.status == 'Upcoming') {
+    if (!session.isCompleted) {
       return ElevatedButton(
         onPressed: () => _join(context),
         style: ElevatedButton.styleFrom(
@@ -377,17 +338,17 @@ class _SessionAction extends StatelessWidget {
           textStyle: const TextStyle(
               fontSize: 13, fontWeight: FontWeight.w700),
         ),
-        child: const Text('Join'),
+        child: Text(l.dashboard_join),
       );
     }
-    // Completed — show status badge
-    return _StatusBadge(status: session.status);
+    return _StatusBadge(isCompleted: session.isCompleted, l: l);
   }
 }
 
 class _JoinDialog extends StatefulWidget {
   final _Session session;
-  const _JoinDialog({required this.session});
+  final AppLocalizations l;
+  const _JoinDialog({required this.session, required this.l});
 
   @override
   State<_JoinDialog> createState() => _JoinDialogState();
@@ -403,8 +364,7 @@ class _JoinDialogState extends State<_JoinDialog> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              'Live class for ${widget.session.subject} is not yet available in demo mode.'),
+          content: Text(widget.l.schedule_demoSnackbar(widget.session.subject)),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppTheme.primaryGreen,
           shape: RoundedRectangleBorder(
@@ -416,15 +376,16 @@ class _JoinDialogState extends State<_JoinDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = widget.l;
     return AlertDialog(
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20)),
       contentPadding: const EdgeInsets.all(24),
       content: _connecting
-          ? const Column(
+          ? Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 40,
                   height: 40,
                   child: CircularProgressIndicator(
@@ -432,10 +393,10 @@ class _JoinDialogState extends State<_JoinDialog> {
                     strokeWidth: 3,
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text(
-                  'Connecting to class...',
-                  style: TextStyle(
+                  l.schedule_connecting,
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textDark,
@@ -461,9 +422,9 @@ class _JoinDialogState extends State<_JoinDialog> {
                           color: AppTheme.primaryGreen, size: 24),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'Join Class',
-                      style: TextStyle(
+                    Text(
+                      l.schedule_joinDialogTitle,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                         color: AppTheme.textDark,
@@ -514,14 +475,14 @@ class _JoinDialogState extends State<_JoinDialog> {
                               borderRadius:
                                   BorderRadius.circular(12)),
                         ),
-                        child: const Text('Cancel'),
+                        child: Text(l.common_cancel),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _connect,
-                        child: const Text('Join Now'),
+                        child: Text(l.schedule_joinNow),
                       ),
                     ),
                   ],
@@ -533,27 +494,25 @@ class _JoinDialogState extends State<_JoinDialog> {
 }
 
 class _StatusBadge extends StatelessWidget {
-  final String status;
-  const _StatusBadge({required this.status});
+  final bool isCompleted;
+  final AppLocalizations l;
+  const _StatusBadge({required this.isCompleted, required this.l});
 
   @override
   Widget build(BuildContext context) {
-    final isCompleted = status == 'Completed';
-    final color =
-        isCompleted ? AppTheme.textSecondary : AppTheme.primaryGreen;
+    final color = isCompleted ? AppTheme.textSecondary : AppTheme.primaryGreen;
     final bg = isCompleted
         ? const Color(0xFFF3F4F6)
         : AppTheme.primaryGreen.withValues(alpha: 0.1);
 
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        status,
+        isCompleted ? l.schedule_statusCompleted : l.schedule_statusUpcoming,
         style: TextStyle(
           color: color,
           fontSize: 11,
@@ -565,6 +524,9 @@ class _StatusBadge extends StatelessWidget {
 }
 
 class _EmptySchedule extends StatelessWidget {
+  final AppLocalizations l;
+  const _EmptySchedule({required this.l});
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -585,19 +547,19 @@ class _EmptySchedule extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No classes today',
-            style: TextStyle(
+          Text(
+            l.schedule_emptyTitle,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: AppTheme.textDark,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Enjoy your day off or use\nthis time for self-practice!',
+          Text(
+            l.schedule_emptyBody,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               color: AppTheme.textSecondary,
               height: 1.5,
@@ -614,12 +576,12 @@ class _Session {
   final String subject;
   final String teacher;
   final String duration;
-  final String status;
+  final bool isCompleted;
   const _Session({
     required this.time,
     required this.subject,
     required this.teacher,
     required this.duration,
-    required this.status,
+    required this.isCompleted,
   });
 }

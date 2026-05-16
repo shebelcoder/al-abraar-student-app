@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/guest_lock_screen.dart';
@@ -70,7 +71,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     );
   }
 
-  void _showNewMessage(BuildContext context) {
+  void _showNewMessage(BuildContext context, AppLocalizations l) {
     String? selected;
     final msgCtrl = TextEditingController();
     showModalBottomSheet(
@@ -97,14 +98,13 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('New Message',
-                  style: TextStyle(
+              Text(l.messages_newMessageTitle,
+                  style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w800)),
               const SizedBox(height: 20),
               DropdownButtonFormField<String>(
                 initialValue: selected,
-                decoration:
-                    const InputDecoration(labelText: 'Send to'),
+                decoration: InputDecoration(labelText: l.messages_sendToLabel),
                 items: _conversations
                     .where((c) => !c.isGroup)
                     .map((c) => DropdownMenuItem(
@@ -116,8 +116,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
               TextField(
                 controller: msgCtrl,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                    labelText: 'Message'),
+                decoration: InputDecoration(labelText: l.messages_messageLabel),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -132,7 +131,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                               .firstWhere((c) => c.name == selected);
                           _openChat(context, conv);
                         },
-                  child: const Text('Send'),
+                  child: Text(l.messages_send),
                 ),
               ),
             ],
@@ -150,17 +149,17 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     if (ref.watch(isGuestProvider)) {
       return Scaffold(
         backgroundColor: AppTheme.warmBackground,
         appBar: AppBar(
-          title: const Text('Messages'),
+          title: Text(l.messages_appBarTitle),
           automaticallyImplyLeading: false,
         ),
-        body: const GuestLockScreen(
-          featureName: 'Your Messages',
-          description:
-              'Sign in to message your teachers and\nview class announcements.',
+        body: GuestLockScreen(
+          featureName: l.messages_guestFeatureName,
+          description: l.messages_guestDesc,
           icon: Icons.chat_bubble_rounded,
         ),
       );
@@ -169,18 +168,17 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
-        title: const Text('Messages'),
+        title: Text(l.messages_appBarTitle),
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_rounded),
-            onPressed: () => _showNewMessage(context),
+            onPressed: () => _showNewMessage(context, l),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Search bar
           Container(
             color: AppTheme.surfaceWhite,
             padding:
@@ -189,7 +187,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
               controller: _searchCtrl,
               onChanged: (v) => setState(() => _query = v),
               decoration: InputDecoration(
-                hintText: 'Search messages...',
+                hintText: l.messages_searchHint,
                 hintStyle: const TextStyle(color: AppTheme.textSecondary),
                 prefixIcon: const Icon(Icons.search_rounded,
                     color: AppTheme.textSecondary),
@@ -211,7 +209,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
           ),
           Expanded(
             child: filtered.isEmpty
-                ? const _EmptyMessages()
+                ? _EmptyMessages(l: l)
                 : ListView.separated(
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const Divider(
@@ -221,8 +219,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                     ),
                     itemBuilder: (ctx, i) => _ConversationTile(
                       conv: filtered[i],
-                      onTap: () =>
-                          _openChat(context, filtered[i]),
+                      onTap: () => _openChat(context, filtered[i]),
                     ),
                   ),
           ),
@@ -356,7 +353,8 @@ class _ConversationTile extends StatelessWidget {
 }
 
 class _EmptyMessages extends StatelessWidget {
-  const _EmptyMessages();
+  final AppLocalizations l;
+  const _EmptyMessages({required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -375,19 +373,19 @@ class _EmptyMessages extends StatelessWidget {
                 size: 40, color: AppTheme.primaryGreen),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No messages yet',
-            style: TextStyle(
+          Text(
+            l.messages_emptyTitle,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: AppTheme.textDark,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Your conversations with teachers\nwill appear here',
+          Text(
+            l.messages_emptyBody,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               color: AppTheme.textSecondary,
               height: 1.5,

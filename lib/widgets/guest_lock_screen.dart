@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 
 class GuestLockScreen extends StatelessWidget {
@@ -16,6 +17,7 @@ class GuestLockScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -29,8 +31,7 @@ class GuestLockScreen extends StatelessWidget {
                 color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child:
-                  Icon(icon, color: AppTheme.primaryGreen, size: 44),
+              child: Icon(icon, color: AppTheme.primaryGreen, size: 44),
             ),
             const SizedBox(height: 20),
             Text(
@@ -58,7 +59,7 @@ class GuestLockScreen extends StatelessWidget {
               height: 52,
               child: ElevatedButton(
                 onPressed: () => context.go('/login'),
-                child: const Text('Sign In'),
+                child: Text(l.common_signIn),
               ),
             ),
             const SizedBox(height: 12),
@@ -68,15 +69,14 @@ class GuestLockScreen extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: () => context.go('/register'),
                 style: OutlinedButton.styleFrom(
-                  side:
-                      const BorderSide(color: AppTheme.primaryGreen),
+                  side: const BorderSide(color: AppTheme.primaryGreen),
                   foregroundColor: AppTheme.primaryGreen,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                   textStyle: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.w700),
                 ),
-                child: const Text('Create Account'),
+                child: Text(l.common_createAccount),
               ),
             ),
           ],

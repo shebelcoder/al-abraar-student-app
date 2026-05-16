@@ -1,44 +1,44 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 
 class BadgesScreen extends StatelessWidget {
   const BadgesScreen({super.key});
 
-  static const _badges = [
-    // Earned
-    _Badge('First Step', 'Completed your first session', '🌟', Color(0xFFF59E0B), true),
-    _Badge('7-Day Streak', 'Practiced 7 days in a row', '🔥', Color(0xFFEF4444), true),
-    _Badge('Al-Fatiha', 'Memorised Al-Fatiha perfectly', '📖', AppTheme.primaryGreen, true),
-    _Badge('Tajweed Star', 'Scored 90%+ on Tajweed', '✨', Color(0xFF8B5CF6), true),
-    _Badge('Early Bird', 'Attended 5 morning sessions', '🌅', Color(0xFF0EA5E9), true),
-    _Badge('Consistent', 'Attended 10 classes in a row', '📅', AppTheme.successGreen, true),
-    _Badge('Quick Learner', 'Memorised 3 surahs in a week', '⚡', Color(0xFFF97316), true),
-    _Badge('Team Player', 'Participated in group recitation', '🤝', Color(0xFF6366F1), true),
-    // Locked
-    _Badge('30-Day Streak', 'Practice 30 days in a row', '🏆', Color(0xFF6B7280), false),
-    _Badge('Juz Amma', 'Memorise the entire Juz Amma', '📚', Color(0xFF6B7280), false),
-    _Badge('Hafiz Path', 'Complete 50% of the Quran', '🌙', Color(0xFF6B7280), false),
-    _Badge('Perfect Score', 'Get 100% on 5 sessions', '💯', Color(0xFF6B7280), false),
-    _Badge('Night Owl', 'Complete 10 evening sessions', '🦉', Color(0xFF6B7280), false),
-    _Badge('Scholar', 'Complete all Arabic modules', '🎓', Color(0xFF6B7280), false),
-  ];
-
-  int get _earnedCount => _badges.where((b) => b.earned).length;
-
   @override
   Widget build(BuildContext context) {
-    final earned = _badges.where((b) => b.earned).toList();
-    final locked = _badges.where((b) => !b.earned).toList();
+    final l = AppLocalizations.of(context);
+
+    final badges = [
+      // Earned
+      _Badge(l.badges_firstStepName, l.badges_firstStepDesc, '🌟', const Color(0xFFF59E0B), true),
+      _Badge(l.badges_streakName, l.badges_streakDesc, '🔥', const Color(0xFFEF4444), true),
+      _Badge(l.badges_alfatihaName, l.badges_alfatihaDesc, '📖', AppTheme.primaryGreen, true),
+      _Badge(l.badges_tajweedStarName, l.badges_tajweedStarDesc, '✨', const Color(0xFF8B5CF6), true),
+      _Badge(l.badges_earlyBirdName, l.badges_earlyBirdDesc, '🌅', const Color(0xFF0EA5E9), true),
+      _Badge(l.badges_consistentName, l.badges_consistentDesc, '📅', AppTheme.successGreen, true),
+      _Badge(l.badges_quickLearnerName, l.badges_quickLearnerDesc, '⚡', const Color(0xFFF97316), true),
+      _Badge(l.badges_teamPlayerName, l.badges_teamPlayerDesc, '🤝', const Color(0xFF6366F1), true),
+      // Locked
+      _Badge(l.badges_streak30Name, l.badges_streak30Desc, '🏆', const Color(0xFF6B7280), false),
+      _Badge(l.badges_juzAmmaName, l.badges_juzAmmaDesc, '📚', const Color(0xFF6B7280), false),
+      _Badge(l.badges_hafizPathName, l.badges_hafizPathDesc, '🌙', const Color(0xFF6B7280), false),
+      _Badge(l.badges_perfectScoreName, l.badges_perfectScoreDesc, '💯', const Color(0xFF6B7280), false),
+      _Badge(l.badges_nightOwlName, l.badges_nightOwlDesc, '🦉', const Color(0xFF6B7280), false),
+      _Badge(l.badges_scholarName, l.badges_scholarDesc, '🎓', const Color(0xFF6B7280), false),
+    ];
+
+    final earnedCount = badges.where((b) => b.earned).length;
+    final earned = badges.where((b) => b.earned).toList();
+    final locked = badges.where((b) => !b.earned).toList();
+    final lockedCount = badges.length - earnedCount;
 
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
-      appBar: AppBar(
-        title: const Text('My Badges'),
-      ),
+      appBar: AppBar(title: Text(l.badges_appBarTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Stats header
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -56,14 +56,13 @@ class BadgesScreen extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Text('🏅',
-                    style: TextStyle(fontSize: 44)),
+                const Text('🏅', style: TextStyle(fontSize: 44)),
                 const SizedBox(width: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$_earnedCount badges earned',
+                      l.badges_earnedCount(earnedCount),
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
@@ -71,7 +70,7 @@ class BadgesScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${_badges.length - _earnedCount} more to unlock',
+                      l.badges_remaining(lockedCount),
                       style: const TextStyle(
                           color: Colors.white70, fontSize: 13),
                     ),
@@ -81,8 +80,7 @@ class BadgesScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          // Earned section
-          const _SectionHeader(title: 'Earned', count: null),
+          _SectionHeader(title: l.badges_sectionEarned, count: null),
           const SizedBox(height: 12),
           GridView.builder(
             shrinkWrap: true,
@@ -95,13 +93,12 @@ class BadgesScreen extends StatelessWidget {
               childAspectRatio: 0.85,
             ),
             itemCount: earned.length,
-            itemBuilder: (_, i) => _BadgeCard(badge: earned[i]),
+            itemBuilder: (_, i) => _BadgeCard(badge: earned[i], l: l),
           ),
           const SizedBox(height: 24),
-          // Locked section
           _SectionHeader(
-              title: 'Locked',
-              count: '${_badges.length - _earnedCount} remaining'),
+              title: l.badges_sectionLocked,
+              count: l.badges_remaining(lockedCount)),
           const SizedBox(height: 12),
           GridView.builder(
             shrinkWrap: true,
@@ -114,7 +111,7 @@ class BadgesScreen extends StatelessWidget {
               childAspectRatio: 0.85,
             ),
             itemCount: locked.length,
-            itemBuilder: (_, i) => _BadgeCard(badge: locked[i]),
+            itemBuilder: (_, i) => _BadgeCard(badge: locked[i], l: l),
           ),
           const SizedBox(height: 80),
         ],
@@ -157,7 +154,8 @@ class _SectionHeader extends StatelessWidget {
 
 class _BadgeCard extends StatelessWidget {
   final _Badge badge;
-  const _BadgeCard({required this.badge});
+  final AppLocalizations l;
+  const _BadgeCard({required this.badge, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -178,27 +176,22 @@ class _BadgeCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Stack(
-              alignment: Alignment.topRight,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: badge.earned
-                        ? badge.color.withValues(alpha: 0.12)
-                        : const Color(0xFFF3F4F6),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      badge.earned ? badge.emoji : '🔒',
-                      style: TextStyle(
-                          fontSize: badge.earned ? 24 : 20),
-                    ),
-                  ),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: badge.earned
+                    ? badge.color.withValues(alpha: 0.12)
+                    : const Color(0xFFF3F4F6),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  badge.earned ? badge.emoji : '🔒',
+                  style: TextStyle(
+                      fontSize: badge.earned ? 24 : 20),
                 ),
-              ],
+              ),
             ),
             const SizedBox(height: 8),
             Padding(
@@ -291,7 +284,7 @@ class _BadgeCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                badge.earned ? 'Earned' : 'Not yet unlocked',
+                badge.earned ? l.badges_statusEarned : l.badges_statusLocked,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

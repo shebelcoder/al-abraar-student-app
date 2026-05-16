@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/guest_lock_screen.dart';
 
-// Attendance status for a given day
 enum _Att { present, absent, excused, none }
 
 class AttendanceScreen extends ConsumerStatefulWidget {
@@ -25,7 +26,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     _month = DateTime(now.year, now.month);
   }
 
-  // Mock attendance data: day-of-month → status
   static final Map<int, _Att> _mockData = {
     1: _Att.present, 2: _Att.present, 3: _Att.absent,
     4: _Att.present, 5: _Att.none, 6: _Att.none,
@@ -63,29 +63,33 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         (_month.year == now.year && _month.month < now.month);
   }
 
+  String _monthLabel(Locale locale) {
+    final monthName = DateFormat('MMMM', locale.languageCode).format(_month);
+    return '$monthName ${_month.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context);
+
     if (ref.watch(isGuestProvider)) {
       return Scaffold(
         backgroundColor: AppTheme.warmBackground,
-        appBar: AppBar(title: const Text('Attendance')),
-        body: const GuestLockScreen(
-          featureName: 'Your Attendance',
-          description:
-              'Sign in to view your class attendance\nrecord and monthly calendar.',
+        appBar: AppBar(title: Text(l.attendance_appBarTitle)),
+        body: GuestLockScreen(
+          featureName: l.attendance_guestFeatureName,
+          description: l.attendance_guestDesc,
           icon: Icons.event_available_rounded,
         ),
       );
     }
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
-      appBar: AppBar(
-        title: const Text('Attendance'),
-      ),
+      appBar: AppBar(title: Text(l.attendance_appBarTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Stats banner
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -105,7 +109,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               children: [
                 Expanded(
                   child: _AttStat(
-                    label: 'Present',
+                    label: l.attendance_present,
                     value: '$_present',
                     color: Colors.white,
                   ),
@@ -113,7 +117,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 _Divider(),
                 Expanded(
                   child: _AttStat(
-                    label: 'Absent',
+                    label: l.attendance_absent,
                     value: '$_absent',
                     color: Colors.white,
                   ),
@@ -121,7 +125,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 _Divider(),
                 Expanded(
                   child: _AttStat(
-                    label: 'Rate',
+                    label: l.attendance_rate,
                     value: '${(_rate * 100).round()}%',
                     color: Colors.white,
                   ),
@@ -130,7 +134,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          // Calendar card
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -146,7 +149,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
             ),
             child: Column(
               children: [
-                // Month navigation
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -156,7 +158,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                           color: AppTheme.textDark),
                     ),
                     Text(
-                      _monthLabel,
+                      _monthLabel(locale),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -175,9 +177,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                // Weekday headers
                 Row(
-                  children: const ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+                  children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
                       .map((d) => Expanded(
                             child: Center(
                               child: Text(
@@ -198,7 +199,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          // Legend
           Container(
             padding: const EdgeInsets.symmetric(
                 horizontal: 20, vertical: 14),
@@ -206,19 +206,19 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               color: AppTheme.surfaceWhite,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _LegendItem(
-                    label: 'Present',
+                    label: l.attendance_legendPresent,
                     color: AppTheme.successGreen),
-                _LegendItem(label: 'Absent', color: AppTheme.errorRed),
+                _LegendItem(label: l.attendance_legendAbsent, color: AppTheme.errorRed),
                 _LegendItem(
-                    label: 'Excused',
+                    label: l.attendance_legendExcused,
                     color: AppTheme.goldAccent),
                 _LegendItem(
-                    label: 'No Class',
-                    color: Color(0xFFE5E7EB)),
+                    label: l.attendance_legendNoClass,
+                    color: const Color(0xFFE5E7EB)),
               ],
             ),
           ),
@@ -226,14 +226,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         ],
       ),
     );
-  }
-
-  String get _monthLabel {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return '${months[_month.month - 1]} ${_month.year}';
   }
 }
 
@@ -246,7 +238,6 @@ class _CalendarGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // First weekday of month (1=Mon..7=Sun, mapped to 0-based offset)
     final firstWeekday = DateTime(month.year, month.month, 1).weekday - 1;
     final daysInMonth =
         DateUtils.getDaysInMonth(month.year, month.month);

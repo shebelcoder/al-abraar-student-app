@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/surahs_data.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 
 enum PracticeMode {
@@ -10,25 +11,25 @@ enum PracticeMode {
 }
 
 extension PracticeModeExt on PracticeMode {
-  String get title {
+  String title(AppLocalizations l) {
     switch (this) {
       case PracticeMode.listenRepeat:
-        return 'Listen & Repeat';
+        return l.practice_mode_listenRepeatTitle;
       case PracticeMode.memorisationTest:
-        return 'Memorisation Test';
+        return l.practice_mode_memorisationTitle;
       case PracticeMode.turnTaking:
-        return 'Turn Taking';
+        return l.practice_mode_turnTakingTitle;
     }
   }
 
-  String get description {
+  String description(AppLocalizations l) {
     switch (this) {
       case PracticeMode.listenRepeat:
-        return 'AI recites each ayah, then you repeat after it';
+        return l.practice_mode_listenRepeatDesc;
       case PracticeMode.memorisationTest:
-        return 'Recite from memory — text is revealed only after you speak';
+        return l.practice_mode_memorisationDesc;
       case PracticeMode.turnTaking:
-        return 'You and the AI alternate ayahs together';
+        return l.practice_mode_turnTakingDesc;
     }
   }
 
@@ -82,9 +83,10 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
-      appBar: AppBar(title: const Text('Set Up Practice')),
+      appBar: AppBar(title: Text(l.setup_appBarTitle)),
       body: Column(
         children: [
           Expanded(
@@ -94,7 +96,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                 // Step 1 — surah
                 _StepHeader(
                   number: 1,
-                  title: 'Choose a Surah',
+                  title: l.setup_step1,
                   done: _selectedSurahIndex != null,
                 ),
                 const SizedBox(height: 12),
@@ -127,7 +129,6 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                       ),
                       child: Row(
                         children: [
-                          // Surah number circle
                           Container(
                             width: 40,
                             height: 40,
@@ -185,7 +186,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                                 Row(
                                   children: [
                                     Text(
-                                      '${surah.ayahCount} ayahs',
+                                      l.setup_ayahCount(surah.ayahCount),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: selected
@@ -202,8 +203,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                                         color: selected
                                             ? Colors.white
                                                 .withValues(alpha: 0.2)
-                                            : (surah.difficulty ==
-                                                    'Beginner'
+                                            : (surah.isBeginner
                                                 ? AppTheme.successGreen
                                                 : AppTheme.goldAccent)
                                             .withValues(alpha: 0.15),
@@ -211,14 +211,15 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                                             BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        surah.difficulty,
+                                        surah.isBeginner
+                                            ? l.setup_difficultyBeginner
+                                            : l.setup_difficultyIntermediate,
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
                                           color: selected
                                               ? Colors.white
-                                              : (surah.difficulty ==
-                                                      'Beginner'
+                                              : (surah.isBeginner
                                                   ? AppTheme.successGreen
                                                   : AppTheme.goldAccent),
                                         ),
@@ -229,7 +230,6 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                               ],
                             ),
                           ),
-                          // Arabic preview
                           Text(
                             surah.meaning,
                             style: TextStyle(
@@ -256,7 +256,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                 // Step 2 — mode
                 _StepHeader(
                   number: 2,
-                  title: 'Choose Practice Mode',
+                  title: l.setup_step2,
                   done: _selectedMode != null,
                 ),
                 const SizedBox(height: 12),
@@ -306,7 +306,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                                   CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  mode.title,
+                                  mode.title(l),
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
@@ -317,7 +317,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  mode.description,
+                                  mode.description(l),
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: AppTheme.textSecondary,
@@ -358,8 +358,8 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                     icon: const Icon(Icons.play_arrow_rounded, size: 22),
                     label: Text(
                       _canStart
-                          ? 'Start — ${practiseSurahs[_selectedSurahIndex!].name}'
-                          : 'Select Surah & Mode to Begin',
+                          ? l.setup_startButton(practiseSurahs[_selectedSurahIndex!].name)
+                          : l.setup_startButtonDisabled,
                     ),
                   ),
                 ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -8,40 +9,39 @@ class MainShell extends ConsumerWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
-  static const _tabs = [
-    _TabItem(icon: Icons.home_rounded, label: 'Home', path: '/home/dashboard'),
-    _TabItem(
-        icon: Icons.record_voice_over_rounded,
-        label: 'Practice',
-        path: '/home/practice'),
-    _TabItem(
-        icon: Icons.calendar_today_rounded,
-        label: 'Schedule',
-        path: '/home/schedule'),
-    _TabItem(
-        icon: Icons.chat_bubble_rounded,
-        label: 'Messages',
-        path: '/home/messages'),
-    _TabItem(
-        icon: Icons.person_rounded, label: 'Profile', path: '/home/profile'),
-  ];
-
   int _selectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
-    for (var i = 0; i < _tabs.length; i++) {
-      if (location.startsWith(_tabs[i].path)) return i;
+    final paths = [
+      '/home/dashboard',
+      '/home/practice',
+      '/quran',
+      '/home/messages',
+      '/home/profile',
+    ];
+    for (var i = 0; i < paths.length; i++) {
+      if (location.startsWith(paths[i])) return i;
     }
     return 0;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final isGuest = ref.watch(isGuestProvider);
     final selected = _selectedIndex(context);
+
+    final tabs = [
+      _TabItem(icon: Icons.home_rounded, label: l.nav_home, path: '/home/dashboard'),
+      _TabItem(icon: Icons.record_voice_over_rounded, label: l.nav_practice, path: '/home/practice'),
+      _TabItem(icon: Icons.menu_book_rounded, label: l.nav_quran, path: '/quran'),
+      _TabItem(icon: Icons.chat_bubble_rounded, label: l.nav_messages, path: '/home/messages'),
+      _TabItem(icon: Icons.person_rounded, label: l.nav_profile, path: '/home/profile'),
+    ];
+
     return Scaffold(
       body: Column(
         children: [
-          if (isGuest) const _GuestBanner(),
+          if (isGuest) _GuestBanner(l: l),
           Expanded(child: child),
         ],
       ),
@@ -59,12 +59,11 @@ class MainShell extends ConsumerWidget {
         child: SafeArea(
           top: false,
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(_tabs.length, (i) {
-                final tab = _tabs[i];
+              children: List.generate(tabs.length, (i) {
+                final tab = tabs[i];
                 final isSelected = i == selected;
                 return GestureDetector(
                   onTap: () => context.go(tab.path),
@@ -115,16 +114,9 @@ class MainShell extends ConsumerWidget {
   }
 }
 
-class _TabItem {
-  final IconData icon;
-  final String label;
-  final String path;
-  const _TabItem(
-      {required this.icon, required this.label, required this.path});
-}
-
 class _GuestBanner extends StatelessWidget {
-  const _GuestBanner();
+  final AppLocalizations l;
+  const _GuestBanner({required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -139,19 +131,19 @@ class _GuestBanner extends StatelessWidget {
               const Icon(Icons.lock_outline_rounded,
                   size: 15, color: AppTheme.goldAccent),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Guest mode — sign in to save your progress',
-                  style: TextStyle(
+                  l.nav_guestBanner,
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppTheme.textDark,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              const Text(
-                'Sign In',
-                style: TextStyle(
+              Text(
+                l.common_signIn,
+                style: const TextStyle(
                   fontSize: 12,
                   color: AppTheme.primaryGreen,
                   fontWeight: FontWeight.w700,
@@ -166,4 +158,11 @@ class _GuestBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+class _TabItem {
+  final IconData icon;
+  final String label;
+  final String path;
+  const _TabItem({required this.icon, required this.label, required this.path});
 }

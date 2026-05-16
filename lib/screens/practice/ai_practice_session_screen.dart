@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../data/surahs_data.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/practice_history_provider.dart';
 import '../../theme/app_theme.dart';
 import 'session_setup_screen.dart';
@@ -14,14 +15,29 @@ import 'session_setup_screen.dart';
 // Stage machine
 // ---------------------------------------------------------------------------
 enum _Stage {
-  aiPlayback,   // AI "reciting" with waveform animation
-  countdown,    // 3 … 2 … 1 countdown before mic opens
-  recording,    // student is speaking
-  reviewing,    // transcript shown, auto-score suggested, student confirms
-  completed,    // all ayahs done
+  aiPlayback,
+  countdown,
+  recording,
+  reviewing,
+  completed,
 }
 
 enum AyahResult { correct, smallMistake, wrong, skipped }
+
+extension _AyahResultLabel on AyahResult {
+  String label(AppLocalizations l) {
+    switch (this) {
+      case AyahResult.correct:
+        return l.session_correct;
+      case AyahResult.smallMistake:
+        return l.session_smallMistake;
+      case AyahResult.wrong:
+        return l.session_wrong;
+      case AyahResult.skipped:
+        return l.session_skipped;
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 
@@ -78,7 +94,6 @@ class _AIPracticeSessionScreenState
   AyahData get _ayah => _surah.ayahs[_current];
   bool get _isLastAyah => _current >= _surah.ayahs.length - 1;
 
-  // In Turn Taking mode, even-indexed ayahs belong to AI, odd to student
   bool get _isStudentTurn {
     if (widget.mode == PracticeMode.turnTaking) {
       return _current % 2 == 1;
@@ -92,7 +107,6 @@ class _AIPracticeSessionScreenState
     _speech = stt.SpeechToText();
     _player = AudioPlayer();
 
-    // Auto-advance to countdown when audio finishes
     _playerSub = _player.playerStateStream.listen((ps) {
       if (!mounted) return;
       setState(() => _audioPlaying = ps.playing);
@@ -133,7 +147,6 @@ class _AIPracticeSessionScreenState
       await _player.setUrl(_audioUrl(_surah.number, _current));
       await _player.play();
     } catch (_) {
-      // Network unavailable — fall back to a 3-second simulated delay
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted && _stage == _Stage.aiPlayback) _onAIFinished();
       });
@@ -164,7 +177,6 @@ class _AIPracticeSessionScreenState
       setState(() => _stage = _Stage.countdown);
       _startCountdown();
     } else if (widget.mode == PracticeMode.turnTaking && !_isStudentTurn) {
-      // AI's turn — play audio then auto-advance when it finishes
       setState(() => _stage = _Stage.aiPlayback);
       _playAudio();
     } else {
@@ -182,7 +194,6 @@ class _AIPracticeSessionScreenState
   }
 
   void _onAIFinished() {
-    // Called when student taps "My Turn" or AI finishes automatically
     setState(() => _stage = _Stage.countdown);
     _startCountdown();
   }
@@ -241,10 +252,9 @@ class _AIPracticeSessionScreenState
 
   // ── Scoring ─────────────────────────────────────────────────────────────
 
-  /// Removes Arabic diacritical marks and normalises whitespace for comparison.
   String _normalize(String text) {
     return text
-        .replaceAll(RegExp(r'[ؐ-ًؚ-ٰٟ]'), '')
+        .replaceAll(RegExp(r'[ؐ-ًؚ-ٰٟ]'), '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
@@ -262,7 +272,6 @@ class _AIPracticeSessionScreenState
     return (matches / e.length).clamp(0.0, 1.0);
   }
 
-  /// Suggested result based on similarity score
   AyahResult get _autoSuggestion {
     final sim = _similarity(_transcript, _ayah.arabic);
     if (sim >= 0.75) return AyahResult.correct;
@@ -290,7 +299,6 @@ class _AIPracticeSessionScreenState
 
   void _advanceAyah() {
     if (_isLastAyah) {
-      // Save session to history before showing completion screen
       final totalPossible = _surah.ayahCount * 10;
       ref.read(practiceHistoryProvider.notifier).addSession(
             PracticeSession(
@@ -309,15 +317,12 @@ class _AIPracticeSessionScreenState
     }
   }
 
-  // ── Retry wrong ayahs ────────────────────────────────────────────────────
-
   void _retryMistakes() {
     final wrongIndices = <int>[];
     for (var i = 0; i < _results.length; i++) {
       if (_results[i] != AyahResult.correct) wrongIndices.add(i);
     }
     if (wrongIndices.isEmpty) return;
-    // Replace session with only wrong ayahs via navigation
     context.push(
       '/practice/session',
       extra: {
@@ -354,6 +359,8 @@ class _AIPracticeSessionScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+
     if (_stage == _Stage.completed) {
       return _CompletionScreen(
         surah: _surah,
@@ -367,19 +374,19 @@ class _AIPracticeSessionScreenState
 
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(l),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Column(
             children: [
-              _buildProgressBar(),
+              _buildProgressBar(l),
               const SizedBox(height: 16),
-              Expanded(child: _buildAyahCard()),
+              Expanded(child: _buildAyahCard(l)),
               const SizedBox(height: 12),
-              _buildStagePanel(),
+              _buildStagePanel(l),
               const SizedBox(height: 8),
-              _buildFooter(),
+              _buildFooter(l),
             ],
           ),
         ),
@@ -387,13 +394,13 @@ class _AIPracticeSessionScreenState
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(AppLocalizations l) {
     return AppBar(
       backgroundColor: AppTheme.surfaceWhite,
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.close_rounded, color: AppTheme.textDark),
-        onPressed: () => _showEndConfirmation(),
+        onPressed: () => _showEndConfirmation(l),
       ),
       titleSpacing: 0,
       title: Column(
@@ -408,7 +415,7 @@ class _AIPracticeSessionScreenState
             ),
           ),
           Text(
-            widget.mode.title,
+            widget.mode.title(l),
             style: const TextStyle(
               fontSize: 11,
               color: AppTheme.textSecondary,
@@ -417,7 +424,6 @@ class _AIPracticeSessionScreenState
         ],
       ),
       actions: [
-        // Lives
         Row(
           children: List.generate(
             3,
@@ -432,7 +438,6 @@ class _AIPracticeSessionScreenState
           ),
         ),
         const SizedBox(width: 8),
-        // Score chip
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           margin: const EdgeInsets.only(right: 12),
@@ -460,7 +465,7 @@ class _AIPracticeSessionScreenState
     );
   }
 
-  Widget _buildProgressBar() {
+  Widget _buildProgressBar(AppLocalizations l) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -468,7 +473,7 @@ class _AIPracticeSessionScreenState
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Ayah ${_current + 1} of ${_surah.ayahCount}',
+              l.session_ayahProgress(_current + 1, _surah.ayahCount),
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -495,7 +500,6 @@ class _AIPracticeSessionScreenState
             valueColor: const AlwaysStoppedAnimation(AppTheme.primaryGreen),
           ),
         ),
-        // Result dots
         if (_results.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -506,8 +510,8 @@ class _AIPracticeSessionScreenState
                     width: 8,
                     height: 8,
                     margin: const EdgeInsets.only(right: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE5E7EB),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE5E7EB),
                       shape: BoxShape.circle,
                     ),
                   );
@@ -534,8 +538,7 @@ class _AIPracticeSessionScreenState
     );
   }
 
-  Widget _buildAyahCard() {
-    // In memorisation test, hide Arabic text during recording
+  Widget _buildAyahCard(AppLocalizations l) {
     final hideArabic = widget.mode == PracticeMode.memorisationTest &&
         (_stage == _Stage.countdown || _stage == _Stage.recording);
 
@@ -556,7 +559,6 @@ class _AIPracticeSessionScreenState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Ayah number badge
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -565,7 +567,7 @@ class _AIPracticeSessionScreenState
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              'Ayah ${_current + 1}',
+              l.session_ayahNumber(_current + 1),
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -575,7 +577,6 @@ class _AIPracticeSessionScreenState
           ),
           const SizedBox(height: 16),
 
-          // Arabic text
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             child: hideArabic
@@ -594,9 +595,9 @@ class _AIPracticeSessionScreenState
                             color: AppTheme.primaryGreen, size: 30),
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        'Recite from memory',
-                        style: TextStyle(
+                      Text(
+                        l.session_reciteFromMemory,
+                        style: const TextStyle(
                           fontSize: 14,
                           color: AppTheme.textSecondary,
                           fontWeight: FontWeight.w500,
@@ -621,7 +622,6 @@ class _AIPracticeSessionScreenState
 
           const SizedBox(height: 12),
 
-          // Transliteration toggle
           if (!hideArabic) ...[
             GestureDetector(
               onTap: () => setState(
@@ -642,7 +642,7 @@ class _AIPracticeSessionScreenState
                       )
                     : Text(
                         key: const ValueKey('translit-off'),
-                        'Show transliteration',
+                        l.session_showTransliteration,
                         style: TextStyle(
                           fontSize: 12,
                           color: AppTheme.primaryGreen
@@ -670,7 +670,7 @@ class _AIPracticeSessionScreenState
                       )
                     : Text(
                         key: const ValueKey('trans-off'),
-                        'Show translation',
+                        l.session_showTranslation,
                         style: TextStyle(
                           fontSize: 12,
                           color: AppTheme.textSecondary
@@ -681,14 +681,13 @@ class _AIPracticeSessionScreenState
             ),
           ],
 
-          // Transcript display (reviewing stage)
           if (_stage == _Stage.reviewing && _transcript.isNotEmpty) ...[
             const SizedBox(height: 16),
             const Divider(color: Color(0xFFE5E7EB)),
             const SizedBox(height: 12),
-            const Text(
-              'Your recitation:',
-              style: TextStyle(
+            Text(
+              l.session_yourRecitation,
+              style: const TextStyle(
                   fontSize: 11,
                   color: AppTheme.textSecondary,
                   fontWeight: FontWeight.w600),
@@ -710,17 +709,17 @@ class _AIPracticeSessionScreenState
               ),
             ),
             const SizedBox(height: 6),
-            // Similarity meter
-            _SimilarityBar(score: _autoScore),
+            _SimilarityBar(score: _autoScore, l: l),
           ],
 
           if (_stage == _Stage.reviewing && _transcript.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 16),
               child: Text(
-                'No speech detected',
+                l.session_noSpeechDetected,
                 style: TextStyle(
-                    fontSize: 13, color: AppTheme.errorRed.withValues(alpha: 0.8)),
+                    fontSize: 13,
+                    color: AppTheme.errorRed.withValues(alpha: 0.8)),
               ),
             ),
         ],
@@ -728,7 +727,7 @@ class _AIPracticeSessionScreenState
     );
   }
 
-  Widget _buildStagePanel() {
+  Widget _buildStagePanel(AppLocalizations l) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       child: switch (_stage) {
@@ -740,10 +739,12 @@ class _AIPracticeSessionScreenState
                 ? null
                 : _onAIFinished,
             mode: widget.mode,
+            l: l,
           ),
         _Stage.countdown => _CountdownPanel(
             key: const ValueKey('cd'),
             count: _countdown,
+            l: l,
           ),
         _Stage.recording => _RecordingPanel(
             key: const ValueKey('rec'),
@@ -751,6 +752,7 @@ class _AIPracticeSessionScreenState
             isListening: _isListening,
             micPulse: _micPulse,
             onStop: _stopRecording,
+            l: l,
           ),
         _Stage.reviewing => _ReviewingPanel(
             key: const ValueKey('rev'),
@@ -760,47 +762,48 @@ class _AIPracticeSessionScreenState
                 ? _onHearAgain
                 : null,
             isLastAyah: _isLastAyah,
+            l: l,
           ),
         _Stage.completed => const SizedBox.shrink(),
       },
     );
   }
 
-  Widget _buildFooter() {
+  Widget _buildFooter(AppLocalizations l) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextButton.icon(
-        onPressed: _showEndConfirmation,
+        onPressed: () => _showEndConfirmation(l),
         icon: const Icon(Icons.stop_circle_outlined,
             color: AppTheme.errorRed, size: 18),
-        label: const Text(
-          'End Session',
-          style: TextStyle(color: AppTheme.errorRed, fontWeight: FontWeight.w600),
+        label: Text(
+          l.session_endSessionButton,
+          style: const TextStyle(
+              color: AppTheme.errorRed, fontWeight: FontWeight.w600),
         ),
       ),
     );
   }
 
-  void _showEndConfirmation() {
+  void _showEndConfirmation(AppLocalizations l) {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('End Session?'),
-        content: Text(
-            'You\'ve completed ${_results.length} of ${_surah.ayahCount} ayahs.'),
+        title: Text(l.session_endSessionTitle),
+        content: Text(l.session_endSessionBody(_results.length, _surah.ayahCount)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Continue'),
+            child: Text(l.common_continue),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.go('/home/practice');
             },
-            child: const Text('End',
-                style: TextStyle(color: AppTheme.errorRed)),
+            child: Text(l.session_end,
+                style: const TextStyle(color: AppTheme.errorRed)),
           ),
         ],
       ),
@@ -817,6 +820,7 @@ class _AIPlaybackPanel extends StatelessWidget {
   final bool audioPlaying;
   final VoidCallback? onMyTurn;
   final PracticeMode mode;
+  final AppLocalizations l;
 
   const _AIPlaybackPanel({
     super.key,
@@ -824,6 +828,7 @@ class _AIPlaybackPanel extends StatelessWidget {
     required this.audioPlaying,
     required this.onMyTurn,
     required this.mode,
+    required this.l,
   });
 
   @override
@@ -853,9 +858,9 @@ class _AIPlaybackPanel extends StatelessWidget {
               Text(
                 audioPlaying
                     ? (mode == PracticeMode.turnTaking
-                        ? 'AI is reciting its turn…'
-                        : 'Listen carefully…')
-                    : 'Loading recitation…',
+                        ? l.session_aiTurnReciting
+                        : l.session_aiReciting)
+                    : l.session_loadingRecitation,
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -873,7 +878,7 @@ class _AIPlaybackPanel extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: onMyTurn,
                 icon: const Icon(Icons.mic_rounded, size: 18),
-                label: const Text('My Turn — Recite Now'),
+                label: Text(l.session_myTurnButton),
               ),
             ),
           ],
@@ -885,7 +890,8 @@ class _AIPlaybackPanel extends StatelessWidget {
 
 class _CountdownPanel extends StatelessWidget {
   final int count;
-  const _CountdownPanel({super.key, required this.count});
+  final AppLocalizations l;
+  const _CountdownPanel({super.key, required this.count, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -901,7 +907,7 @@ class _CountdownPanel extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            count == 0 ? 'Go!' : '$count',
+            count == 0 ? l.session_go : '$count',
             style: TextStyle(
               fontSize: 48,
               fontWeight: FontWeight.w900,
@@ -911,9 +917,9 @@ class _CountdownPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Get ready to recite…',
-            style: TextStyle(
+          Text(
+            l.session_getReady,
+            style: const TextStyle(
                 fontSize: 13,
                 color: AppTheme.textSecondary,
                 fontWeight: FontWeight.w500),
@@ -929,6 +935,7 @@ class _RecordingPanel extends StatelessWidget {
   final bool isListening;
   final Animation<double> micPulse;
   final VoidCallback onStop;
+  final AppLocalizations l;
 
   const _RecordingPanel({
     super.key,
@@ -936,6 +943,7 @@ class _RecordingPanel extends StatelessWidget {
     required this.isListening,
     required this.micPulse,
     required this.onStop,
+    required this.l,
   });
 
   String get _display {
@@ -957,7 +965,6 @@ class _RecordingPanel extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Mic button
           GestureDetector(
             onTap: onStop,
             child: AnimatedBuilder(
@@ -990,18 +997,18 @@ class _RecordingPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Recording — recite now',
-                  style: TextStyle(
+                Text(
+                  l.session_recording,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: AppTheme.errorRed,
                   ),
                 ),
                 const SizedBox(height: 2),
-                const Text(
-                  'Tap ■ when you finish',
-                  style: TextStyle(
+                Text(
+                  l.session_tapToStop,
+                  style: const TextStyle(
                       fontSize: 12, color: AppTheme.textSecondary),
                 ),
                 const SizedBox(height: 6),
@@ -1028,6 +1035,7 @@ class _ReviewingPanel extends StatelessWidget {
   final void Function(AyahResult) onSubmit;
   final VoidCallback? onHearAgain;
   final bool isLastAyah;
+  final AppLocalizations l;
 
   const _ReviewingPanel({
     super.key,
@@ -1035,6 +1043,7 @@ class _ReviewingPanel extends StatelessWidget {
     required this.onSubmit,
     required this.onHearAgain,
     required this.isLastAyah,
+    required this.l,
   });
 
   @override
@@ -1042,7 +1051,6 @@ class _ReviewingPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Auto-suggestion hint
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           margin: const EdgeInsets.only(bottom: 10),
@@ -1057,7 +1065,7 @@ class _ReviewingPanel extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'AI suggests: ${suggestion.label} — tap to confirm or choose differently',
+                  l.session_aiSuggestion(suggestion.label(l)),
                   style: const TextStyle(
                       fontSize: 12, color: AppTheme.textSecondary),
                 ),
@@ -1070,7 +1078,7 @@ class _ReviewingPanel extends StatelessWidget {
           children: [
             Expanded(
               child: _AssessButton(
-                label: 'Correct',
+                label: l.session_correct,
                 icon: Icons.check_circle_rounded,
                 color: AppTheme.successGreen,
                 isHighlighted: suggestion == AyahResult.correct,
@@ -1080,7 +1088,7 @@ class _ReviewingPanel extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: _AssessButton(
-                label: 'Mistake',
+                label: l.session_smallMistake,
                 icon: Icons.warning_amber_rounded,
                 color: AppTheme.goldAccent,
                 isHighlighted: suggestion == AyahResult.smallMistake,
@@ -1090,7 +1098,7 @@ class _ReviewingPanel extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: _AssessButton(
-                label: 'Wrong',
+                label: l.session_wrong,
                 icon: Icons.cancel_rounded,
                 color: AppTheme.errorRed,
                 isHighlighted: suggestion == AyahResult.wrong,
@@ -1109,7 +1117,7 @@ class _ReviewingPanel extends StatelessWidget {
                     child: TextButton.icon(
                       onPressed: onHearAgain,
                       icon: const Icon(Icons.replay_rounded, size: 16),
-                      label: const Text('Hear Again'),
+                      label: Text(l.session_hearAgain),
                       style: TextButton.styleFrom(
                           foregroundColor: AppTheme.primaryGreen),
                     ),
@@ -1118,7 +1126,7 @@ class _ReviewingPanel extends StatelessWidget {
                   child: TextButton.icon(
                     onPressed: () => onSubmit(AyahResult.skipped),
                     icon: const Icon(Icons.skip_next_rounded, size: 16),
-                    label: Text(isLastAyah ? 'Finish' : 'Skip'),
+                    label: Text(isLastAyah ? l.session_finish : l.session_skip),
                     style: TextButton.styleFrom(
                         foregroundColor: AppTheme.textSecondary),
                   ),
@@ -1128,21 +1136,6 @@ class _ReviewingPanel extends StatelessWidget {
           ),
       ],
     );
-  }
-}
-
-extension on AyahResult {
-  String get label {
-    switch (this) {
-      case AyahResult.correct:
-        return 'Correct';
-      case AyahResult.smallMistake:
-        return 'Small Mistake';
-      case AyahResult.wrong:
-        return 'Wrong';
-      case AyahResult.skipped:
-        return 'Skipped';
-    }
   }
 }
 
@@ -1192,23 +1185,18 @@ class _CompletionScreen extends StatelessWidget {
     return AppTheme.errorRed;
   }
 
-  String get _message {
-    if (_accuracy >= 0.90) {
-      return 'Excellent recitation! MashaAllah, you did beautifully. 🌟';
-    }
-    if (_accuracy >= 0.75) {
-      return 'Good work! A little more practice and you\'ll be perfect. 💪';
-    }
-    if (_accuracy >= 0.60) {
-      return 'Keep going! Regular practice makes perfect. You\'re improving. 📖';
-    }
-    return 'Don\'t give up! Review the ayahs and try again. Every attempt counts. 🤲';
+  String _message(AppLocalizations l) {
+    if (_accuracy >= 0.90) return l.session_completionGradeA;
+    if (_accuracy >= 0.75) return l.session_completionGradeB;
+    if (_accuracy >= 0.60) return l.session_completionGradeC;
+    return l.session_completionGradeD;
   }
 
   bool get _hasMistakes => _mistakes + _wrong > 0;
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
@@ -1216,13 +1204,12 @@ class _CompletionScreen extends StatelessWidget {
           icon: const Icon(Icons.close_rounded),
           onPressed: () => context.go('/home/practice'),
         ),
-        title: const Text('Session Complete'),
+        title: Text(l.session_completionTitle),
         centerTitle: true,
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          // Grade card
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -1261,13 +1248,13 @@ class _CompletionScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _GradeStat(label: 'Score', value: '$score pts', icon: '⭐'),
+                    _GradeStat(label: l.session_scoreLabel, value: '$score pts', icon: '⭐'),
                     _GradeStat(
-                        label: 'Accuracy',
+                        label: l.session_accuracyLabel,
                         value: '${(_accuracy * 100).round()}%',
                         icon: '🎯'),
                     _GradeStat(
-                        label: 'Lives Left', value: '$lives', icon: '❤️'),
+                        label: l.session_livesLeftLabel, value: '$lives', icon: '❤️'),
                   ],
                 ),
               ],
@@ -1275,7 +1262,6 @@ class _CompletionScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // Message
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1283,7 +1269,7 @@ class _CompletionScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
             ),
             child: Text(
-              _message,
+              _message(l),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 15,
@@ -1294,10 +1280,9 @@ class _CompletionScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // Per-ayah breakdown
-          const Text(
-            'Ayah Breakdown',
-            style: TextStyle(
+          Text(
+            l.session_ayahBreakdown,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: AppTheme.textDark,
@@ -1307,11 +1292,11 @@ class _CompletionScreen extends StatelessWidget {
           ...List.generate(results.length, (i) {
             final result = results[i];
             final ayah = surah.ayahs[i];
-            final (color, icon, label) = switch (result) {
-              AyahResult.correct => (AppTheme.successGreen, Icons.check_circle_rounded, 'Correct'),
-              AyahResult.smallMistake => (AppTheme.goldAccent, Icons.warning_amber_rounded, 'Small Mistake'),
-              AyahResult.wrong => (AppTheme.errorRed, Icons.cancel_rounded, 'Wrong'),
-              AyahResult.skipped => (AppTheme.textSecondary, Icons.skip_next_rounded, 'Skipped'),
+            final (color, icon) = switch (result) {
+              AyahResult.correct => (AppTheme.successGreen, Icons.check_circle_rounded),
+              AyahResult.smallMistake => (AppTheme.goldAccent, Icons.warning_amber_rounded),
+              AyahResult.wrong => (AppTheme.errorRed, Icons.cancel_rounded),
+              AyahResult.skipped => (AppTheme.textSecondary, Icons.skip_next_rounded),
             };
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -1332,7 +1317,7 @@ class _CompletionScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Ayah ${i + 1}',
+                          l.session_ayahNumber(i + 1),
                           style: const TextStyle(
                             fontSize: 11,
                             color: AppTheme.textSecondary,
@@ -1353,7 +1338,7 @@ class _CompletionScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    label,
+                    result.label(l),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -1367,7 +1352,6 @@ class _CompletionScreen extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // Summary row
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1377,15 +1361,14 @@ class _CompletionScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _SummaryChip(count: _correct, label: 'Correct', color: AppTheme.successGreen),
-                _SummaryChip(count: _mistakes, label: 'Mistakes', color: AppTheme.goldAccent),
-                _SummaryChip(count: _wrong, label: 'Wrong', color: AppTheme.errorRed),
+                _SummaryChip(count: _correct, label: l.session_correct, color: AppTheme.successGreen),
+                _SummaryChip(count: _mistakes, label: l.session_mistakes, color: AppTheme.goldAccent),
+                _SummaryChip(count: _wrong, label: l.session_wrong, color: AppTheme.errorRed),
               ],
             ),
           ),
           const SizedBox(height: 24),
 
-          // Actions
           if (_hasMistakes)
             SizedBox(
               width: double.infinity,
@@ -1393,7 +1376,7 @@ class _CompletionScreen extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: onRetryMistakes,
                 icon: const Icon(Icons.replay_rounded),
-                label: const Text('Retry Mistakes'),
+                label: Text(l.session_retryMistakes),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.goldAccent,
                 ),
@@ -1405,7 +1388,7 @@ class _CompletionScreen extends StatelessWidget {
             height: 52,
             child: ElevatedButton(
               onPressed: onPracticeAgain,
-              child: const Text('Practice Again'),
+              child: Text(l.session_practiceAgain),
             ),
           ),
           const SizedBox(height: 12),
@@ -1420,7 +1403,7 @@ class _CompletionScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
               ),
-              child: const Text('Back to Practice'),
+              child: Text(l.session_backToPractice),
             ),
           ),
           const SizedBox(height: 40),
@@ -1490,7 +1473,8 @@ class _AssessButton extends StatelessWidget {
 
 class _SimilarityBar extends StatelessWidget {
   final double score;
-  const _SimilarityBar({required this.score});
+  final AppLocalizations l;
+  const _SimilarityBar({required this.score, required this.l});
 
   Color get _color {
     if (score >= 0.75) return AppTheme.successGreen;
@@ -1506,8 +1490,8 @@ class _SimilarityBar extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Match score',
-                style: TextStyle(
+            Text(l.session_matchScore,
+                style: const TextStyle(
                     fontSize: 10, color: AppTheme.textSecondary)),
             Text(
               '${(score * 100).round()}%',

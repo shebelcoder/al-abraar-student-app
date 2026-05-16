@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/notifications_provider.dart';
 import '../../theme/app_theme.dart';
 
@@ -8,16 +9,24 @@ class NotificationsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final notifs = ref.watch(notificationsProvider);
     final unread = notifs.where((n) => !n.read).length;
-    const groups = ['Today', 'Yesterday', 'Earlier'];
+
+    // Internal keys map to localized display labels
+    final groupLabels = {
+      'Today': l.notifications_groupToday,
+      'Yesterday': l.notifications_groupYesterday,
+      'Earlier': l.notifications_groupEarlier,
+    };
+    final groups = ['Today', 'Yesterday', 'Earlier'];
 
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
         title: Row(
           children: [
-            const Text('Notifications'),
+            Text(l.notifications_appBarTitle),
             if (unread > 0) ...[
               const SizedBox(width: 8),
               Container(
@@ -43,9 +52,9 @@ class NotificationsScreen extends ConsumerWidget {
             TextButton(
               onPressed: () =>
                   ref.read(notificationsProvider.notifier).markAllRead(),
-              child: const Text(
-                'Mark all read',
-                style: TextStyle(
+              child: Text(
+                l.notifications_markAllRead,
+                style: const TextStyle(
                     color: AppTheme.primaryGreen,
                     fontWeight: FontWeight.w600),
               ),
@@ -53,12 +62,12 @@ class NotificationsScreen extends ConsumerWidget {
         ],
       ),
       body: notifs.isEmpty
-          ? const _Empty()
+          ? _Empty(l: l)
           : ListView(
               children: [
                 for (final group in groups)
                   if (notifs.any((n) => n.group == group)) ...[
-                    _GroupHeader(label: group),
+                    _GroupHeader(label: groupLabels[group] ?? group),
                     ...notifs
                         .where((n) => n.group == group)
                         .map((n) => _NotifTile(
@@ -223,7 +232,8 @@ class _NotifTile extends StatelessWidget {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty();
+  final AppLocalizations l;
+  const _Empty({required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -242,14 +252,14 @@ class _Empty extends StatelessWidget {
                 size: 40, color: AppTheme.primaryGreen),
           ),
           const SizedBox(height: 16),
-          const Text('All caught up!',
-              style: TextStyle(
+          Text(l.notifications_emptyTitle,
+              style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textDark)),
           const SizedBox(height: 6),
-          const Text('No new notifications',
-              style: TextStyle(
+          Text(l.notifications_emptyBody,
+              style: const TextStyle(
                   fontSize: 14, color: AppTheme.textSecondary)),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/practice_history_provider.dart';
 import '../../theme/app_theme.dart';
@@ -11,34 +12,32 @@ class ProgressScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     if (ref.watch(isGuestProvider)) {
       return Scaffold(
         backgroundColor: AppTheme.warmBackground,
-        appBar: AppBar(title: const Text('My Progress')),
-        body: const GuestLockScreen(
-          featureName: 'Your Progress',
-          description:
-              'Sign in to track your Quran memorisation,\nskills and weekly activity.',
+        appBar: AppBar(title: Text(l.progress_appBarTitle)),
+        body: GuestLockScreen(
+          featureName: l.progress_guestFeatureName,
+          description: l.progress_guestDesc,
           icon: Icons.bar_chart_rounded,
         ),
       );
     }
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
-      appBar: AppBar(
-        title: const Text('My Progress'),
-      ),
+      appBar: AppBar(title: Text(l.progress_appBarTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: const [
-          _OverallCard(),
-          SizedBox(height: 16),
-          _WeeklyActivity(), // ConsumerWidget — reads weeklyActivityProvider
-          SizedBox(height: 16),
-          _SkillsBreakdown(),
-          SizedBox(height: 16),
-          _SurahProgress(),
-          SizedBox(height: 80),
+        children: [
+          _OverallCard(l: l),
+          const SizedBox(height: 16),
+          _WeeklyActivity(l: l),
+          const SizedBox(height: 16),
+          _SkillsBreakdown(l: l),
+          const SizedBox(height: 16),
+          _SurahProgress(l: l),
+          const SizedBox(height: 80),
         ],
       ),
     );
@@ -48,7 +47,8 @@ class ProgressScreen extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _OverallCard extends ConsumerWidget {
-  const _OverallCard();
+  final AppLocalizations l;
+  const _OverallCard({required this.l});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -82,10 +82,10 @@ class _OverallCard extends ConsumerWidget {
                   size: const Size(100, 100),
                   painter: _RingPainter(progress: 0.18),
                 ),
-                const Column(
+                Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
+                    const Text(
                       '18%',
                       style: TextStyle(
                         color: Colors.white,
@@ -94,8 +94,8 @@ class _OverallCard extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      'Quran',
-                      style: TextStyle(
+                      l.progress_quranPercent,
+                      style: const TextStyle(
                           color: Colors.white70, fontSize: 11),
                     ),
                   ],
@@ -108,23 +108,23 @@ class _OverallCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Overall Progress',
-                  style: TextStyle(
+                Text(
+                  l.progress_overallTitle,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 12),
-                const _StatRow(label: 'Surahs Memorised', value: '12'),
+                _StatRow(label: l.progress_surahsMemorised, value: '12'),
                 const SizedBox(height: 6),
                 _StatRow(
-                    label: 'Ayahs Recited',
+                    label: l.progress_ayahsRecited,
                     value: '${stats.totalAyahsRecited}'),
                 const SizedBox(height: 6),
                 _StatRow(
-                    label: 'Practice Sessions',
+                    label: l.progress_practiceSessions,
                     value: '${stats.totalSessions}'),
               ],
             ),
@@ -170,9 +170,8 @@ class _RingPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 8;
-    final strokeWidth = 8.0;
+    const strokeWidth = 8.0;
 
-    // Background ring
     canvas.drawCircle(
       center,
       radius,
@@ -182,7 +181,6 @@ class _RingPainter extends CustomPainter {
         ..strokeWidth = strokeWidth,
     );
 
-    // Progress arc
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -math.pi / 2,
@@ -203,15 +201,17 @@ class _RingPainter extends CustomPainter {
 // ---------------------------------------------------------------------------
 
 class _WeeklyActivity extends ConsumerWidget {
-  const _WeeklyActivity();
-
-  static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final AppLocalizations l;
+  const _WeeklyActivity({required this.l});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final days = [
+      l.schedule_mon, l.schedule_tue, l.schedule_wed,
+      l.schedule_thu, l.schedule_fri, l.schedule_sat, l.schedule_sun,
+    ];
     final counts = ref.watch(weeklyActivityProvider);
-    final totalSessions =
-        ref.watch(practiceHistoryProvider).length;
+    final totalSessions = ref.watch(practiceHistoryProvider).length;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -231,9 +231,9 @@ class _WeeklyActivity extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'This Week',
-                style: TextStyle(
+              Text(
+                l.progress_thisWeek,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textDark,
@@ -247,7 +247,7 @@ class _WeeklyActivity extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '$totalSessions session${totalSessions == 1 ? '' : 's'}',
+                  l.practice_sessionCount(totalSessions),
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppTheme.primaryGreen,
@@ -263,7 +263,7 @@ class _WeeklyActivity extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(_days.length, (i) {
+              children: List.generate(days.length, (i) {
                 final count = i < counts.length ? counts[i] : 0;
                 final maxCount =
                     counts.isEmpty ? 1 : counts.reduce(math.max);
@@ -299,7 +299,7 @@ class _WeeklyActivity extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      _days[i],
+                      days[i],
                       style: TextStyle(
                         fontSize: 10,
                         color: isToday
@@ -324,17 +324,18 @@ class _WeeklyActivity extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _SkillsBreakdown extends StatelessWidget {
-  const _SkillsBreakdown();
-
-  static const _skills = [
-    _Skill('Tajweed', 0.82, Color(0xFF8B5CF6)),
-    _Skill('Memorisation', 0.64, AppTheme.primaryGreen),
-    _Skill('Recitation', 0.75, Color(0xFF0EA5E9)),
-    _Skill('Arabic', 0.58, AppTheme.goldAccent),
-  ];
+  final AppLocalizations l;
+  const _SkillsBreakdown({required this.l});
 
   @override
   Widget build(BuildContext context) {
+    final skills = [
+      _Skill(l.progress_skill_tajweed, 0.82, const Color(0xFF8B5CF6)),
+      _Skill(l.progress_skill_memorisation, 0.64, AppTheme.primaryGreen),
+      _Skill(l.progress_skill_recitation, 0.75, const Color(0xFF0EA5E9)),
+      _Skill(l.progress_skill_arabic, 0.58, AppTheme.goldAccent),
+    ];
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -351,16 +352,16 @@ class _SkillsBreakdown extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Skills Breakdown',
-            style: TextStyle(
+          Text(
+            l.progress_skillsBreakdown,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: AppTheme.textDark,
             ),
           ),
           const SizedBox(height: 16),
-          ..._skills.map((skill) => _SkillBar(skill: skill)),
+          ...skills.map((skill) => _SkillBar(skill: skill)),
         ],
       ),
     );
@@ -424,7 +425,8 @@ class _Skill {
 // ---------------------------------------------------------------------------
 
 class _SurahProgress extends StatelessWidget {
-  const _SurahProgress();
+  final AppLocalizations l;
+  const _SurahProgress({required this.l});
 
   static const _surahs = [
     _SurahItem('Al-Fatiha (1)', 1.0, true),
@@ -457,16 +459,16 @@ class _SurahProgress extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Surah Progress',
-            style: TextStyle(
+          Text(
+            l.progress_surahProgress,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: AppTheme.textDark,
             ),
           ),
           const SizedBox(height: 16),
-          ..._surahs.map((s) => _SurahRow(item: s)),
+          ..._surahs.map((s) => _SurahRow(item: s, l: l)),
         ],
       ),
     );
@@ -475,7 +477,8 @@ class _SurahProgress extends StatelessWidget {
 
 class _SurahRow extends StatelessWidget {
   final _SurahItem item;
-  const _SurahRow({required this.item});
+  final AppLocalizations l;
+  const _SurahRow({required this.item, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -520,7 +523,7 @@ class _SurahRow extends StatelessWidget {
                     ),
                     Text(
                       item.completed
-                          ? 'Complete'
+                          ? l.progress_surahComplete
                           : '${(item.progress * 100).round()}%',
                       style: TextStyle(
                         fontSize: 12,

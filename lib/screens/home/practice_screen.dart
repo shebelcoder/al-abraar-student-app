@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/practice_history_provider.dart';
 import '../../screens/practice/session_setup_screen.dart';
@@ -11,6 +12,7 @@ class PracticeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final isGuest = ref.watch(isGuestProvider);
     final history = ref.watch(practiceHistoryProvider);
     final recent = history.take(5).toList();
@@ -18,15 +20,15 @@ class PracticeScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
-        title: const Text('Quran Practice'),
+        title: Text(l.practice_appBarTitle),
         automaticallyImplyLeading: false,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
-            'Choose Practice Mode',
-            style: TextStyle(
+          Text(
+            l.practice_chooseModeHeader,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: AppTheme.textSecondary,
@@ -34,20 +36,16 @@ class PracticeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
 
-          // 3 active modes
           ...PracticeMode.values.map(
-            (mode) => _ActiveModeCard(
-              mode: mode,
-              isGuest: isGuest,
-            ),
+            (mode) => _ActiveModeCard(mode: mode, isGuest: isGuest, l: l),
           ),
 
-          // Coming-soon mode
-          const _ComingSoonModeCard(
+          _ComingSoonModeCard(
             icon: Icons.sort_rounded,
-            title: 'Order Quiz',
-            description: 'Arrange the ayahs in the correct order',
-            color: Color(0xFFF97316),
+            title: l.practice_orderQuizTitle,
+            description: l.practice_orderQuizDesc,
+            color: const Color(0xFFF97316),
+            l: l,
           ),
 
           const SizedBox(height: 28),
@@ -55,9 +53,9 @@ class PracticeScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Recent Practice',
-                style: TextStyle(
+              Text(
+                l.practice_recentHeader,
+                style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textDark,
@@ -65,7 +63,7 @@ class PracticeScreen extends ConsumerWidget {
               ),
               if (history.isNotEmpty)
                 Text(
-                  '${history.length} sessions',
+                  l.practice_sessionCount(history.length),
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppTheme.textSecondary,
@@ -76,9 +74,9 @@ class PracticeScreen extends ConsumerWidget {
           const SizedBox(height: 12),
 
           if (recent.isEmpty)
-            _EmptyHistory(isGuest: isGuest)
+            _EmptyHistory(isGuest: isGuest, l: l)
           else
-            ...recent.map((s) => _RecentSessionCard(session: s)),
+            ...recent.map((s) => _RecentSessionCard(session: s, l: l)),
 
           const SizedBox(height: 80),
         ],
@@ -92,7 +90,8 @@ class PracticeScreen extends ConsumerWidget {
 class _ActiveModeCard extends StatelessWidget {
   final PracticeMode mode;
   final bool isGuest;
-  const _ActiveModeCard({required this.mode, required this.isGuest});
+  final AppLocalizations l;
+  const _ActiveModeCard({required this.mode, required this.isGuest, required this.l});
 
   void _showGuestSheet(BuildContext context) {
     showModalBottomSheet(
@@ -125,16 +124,16 @@ class _ActiveModeCard extends StatelessWidget {
                   color: AppTheme.primaryGreen, size: 32),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Sign in to Practice',
-              style: TextStyle(
+            Text(
+              l.practice_guestModalTitle,
+              style: const TextStyle(
                   fontSize: 18, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Create a free account to start AI-powered\nQuran practice sessions.',
+            Text(
+              l.practice_guestModalBody,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                   fontSize: 14,
                   color: AppTheme.textSecondary,
                   height: 1.5),
@@ -148,7 +147,7 @@ class _ActiveModeCard extends StatelessWidget {
                   Navigator.pop(context);
                   context.go('/login');
                 },
-                child: const Text('Sign In'),
+                child: Text(l.common_signIn),
               ),
             ),
             const SizedBox(height: 10),
@@ -166,7 +165,7 @@ class _ActiveModeCard extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                 ),
-                child: const Text('Create Account'),
+                child: Text(l.common_createAccount),
               ),
             ),
           ],
@@ -212,7 +211,7 @@ class _ActiveModeCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    mode.title,
+                    mode.title(l),
                     style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -220,7 +219,7 @@ class _ActiveModeCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    mode.description,
+                    mode.description(l),
                     style: const TextStyle(
                         fontSize: 13, color: AppTheme.textSecondary),
                   ),
@@ -245,11 +244,13 @@ class _ComingSoonModeCard extends StatelessWidget {
   final String title;
   final String description;
   final Color color;
+  final AppLocalizations l;
   const _ComingSoonModeCard({
     required this.icon,
     required this.title,
     required this.description,
     required this.color,
+    required this.l,
   });
 
   @override
@@ -296,9 +297,9 @@ class _ComingSoonModeCard extends StatelessWidget {
                         color: const Color(0xFFE5E7EB),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: const Text(
-                        'Soon',
-                        style: TextStyle(
+                      child: Text(
+                        l.common_comingSoon,
+                        style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             color: AppTheme.textSecondary),
@@ -328,7 +329,8 @@ class _ComingSoonModeCard extends StatelessWidget {
 
 class _RecentSessionCard extends StatelessWidget {
   final PracticeSession session;
-  const _RecentSessionCard({required this.session});
+  final AppLocalizations l;
+  const _RecentSessionCard({required this.session, required this.l});
 
   Color get _gradeColor {
     if (session.accuracy >= 0.90) return AppTheme.successGreen;
@@ -371,7 +373,7 @@ class _RecentSessionCard extends StatelessWidget {
                       fontSize: 14),
                 ),
                 Text(
-                  '${session.mode.title} · ${session.dateLabel}',
+                  '${session.mode.title(l)} · ${session.dateLabel}',
                   style: const TextStyle(
                       fontSize: 12, color: AppTheme.textSecondary),
                 ),
@@ -414,7 +416,8 @@ class _RecentSessionCard extends StatelessWidget {
 
 class _EmptyHistory extends StatelessWidget {
   final bool isGuest;
-  const _EmptyHistory({required this.isGuest});
+  final AppLocalizations l;
+  const _EmptyHistory({required this.isGuest, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -429,18 +432,16 @@ class _EmptyHistory extends StatelessWidget {
         children: [
           const Text('📖', style: TextStyle(fontSize: 32)),
           const SizedBox(height: 10),
-          const Text(
-            'No sessions yet',
-            style: TextStyle(
+          Text(
+            l.practice_emptyTitle,
+            style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 15,
                 color: AppTheme.textDark),
           ),
           const SizedBox(height: 4),
           Text(
-            isGuest
-                ? 'Sign in to track your practice history'
-                : 'Complete a session above to see your history here',
+            isGuest ? l.practice_emptyGuest : l.practice_emptyUser,
             textAlign: TextAlign.center,
             style: const TextStyle(
                 fontSize: 13, color: AppTheme.textSecondary),

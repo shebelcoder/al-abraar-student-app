@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/practice_history_provider.dart';
 import '../../theme/app_theme.dart';
@@ -10,6 +11,7 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final authState = ref.watch(authStateProvider);
     final isGuest = authState.valueOrNull?.isGuest ?? false;
     final user = authState.valueOrNull?.user;
@@ -23,7 +25,7 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
-        title: const Text('My Profile'),
+        title: Text(l.profile_appBarTitle),
         automaticallyImplyLeading: false,
         actions: [
           if (!isGuest)
@@ -36,7 +38,6 @@ class ProfileScreen extends ConsumerWidget {
       body: ListView(
         children: [
           if (isGuest) ...[
-            // Guest hero
             Container(
               color: AppTheme.surfaceWhite,
               padding: const EdgeInsets.all(24),
@@ -53,19 +54,19 @@ class ProfileScreen extends ConsumerWidget {
                         size: 40, color: AppTheme.textSecondary),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Guest User',
-                    style: TextStyle(
+                  Text(
+                    l.profile_guestName,
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: AppTheme.textDark,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Sign in to access your profile,\ntrack progress, and connect with teachers.',
+                  Text(
+                    l.profile_guestMessage,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       color: AppTheme.textSecondary,
                       height: 1.5,
@@ -77,7 +78,7 @@ class ProfileScreen extends ConsumerWidget {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () => context.go('/login'),
-                          child: const Text('Sign In'),
+                          child: Text(l.common_signIn),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -95,7 +96,7 @@ class ProfileScreen extends ConsumerWidget {
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700),
                           ),
-                          child: const Text('Register'),
+                          child: Text(l.common_register),
                         ),
                       ),
                     ],
@@ -104,7 +105,6 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           ] else ...[
-            // Signed-in header
             Container(
               color: AppTheme.surfaceWhite,
               padding: const EdgeInsets.all(24),
@@ -145,9 +145,9 @@ class ProfileScreen extends ConsumerWidget {
                       color: AppTheme.primaryGreen.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
-                      'Student',
-                      style: TextStyle(
+                    child: Text(
+                      l.profile_studentRole,
+                      style: const TextStyle(
                         color: AppTheme.primaryGreen,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
@@ -167,17 +167,19 @@ class ProfileScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _StatItem(
-                          label: 'Points',
+                          label: l.profile_pointsLabel,
                           value: '${stats.totalPoints}',
                           icon: '⭐'),
                       _divider(),
                       _StatItem(
-                          label: 'Streak',
-                          value: '${stats.streak} days',
+                          label: l.profile_streakStatLabel,
+                          value: l.profile_streakLabel(stats.streak),
                           icon: '🔥'),
                       _divider(),
                       _StatItem(
-                          label: 'Badges', value: '12', icon: '🏅'),
+                          label: l.profile_badgesLabel,
+                          value: '12',
+                          icon: '🏅'),
                     ],
                   ),
                 ],
@@ -187,23 +189,23 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           if (!isGuest) ...[
             _MenuSection(
-              title: 'Learning',
+              title: l.profile_sectionLearning,
               items: [
                 _MenuItem(
                   icon: Icons.bar_chart_rounded,
-                  label: 'My Progress',
+                  label: l.profile_menuProgress,
                   color: AppTheme.primaryGreen,
                   onTap: () => context.push('/home/progress'),
                 ),
                 _MenuItem(
                   icon: Icons.military_tech_rounded,
-                  label: 'My Badges',
+                  label: l.profile_menuBadges,
                   color: AppTheme.goldAccent,
                   onTap: () => context.push('/home/badges'),
                 ),
                 _MenuItem(
                   icon: Icons.emoji_events_rounded,
-                  label: 'Leaderboard',
+                  label: l.profile_menuLeaderboard,
                   color: const Color(0xFFF97316),
                   onTap: () => context.push('/home/leaderboard'),
                 ),
@@ -211,23 +213,23 @@ class ProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             _MenuSection(
-              title: 'Academic',
+              title: l.profile_sectionAcademic,
               items: [
                 _MenuItem(
                   icon: Icons.event_available_rounded,
-                  label: 'Attendance',
+                  label: l.profile_menuAttendance,
                   color: const Color(0xFF0EA5E9),
                   onTap: () => context.push('/home/attendance'),
                 ),
                 _MenuItem(
                   icon: Icons.grade_rounded,
-                  label: 'Marks',
+                  label: l.profile_menuMarks,
                   color: const Color(0xFF8B5CF6),
                   onTap: () => context.push('/home/marks'),
                 ),
                 _MenuItem(
                   icon: Icons.description_rounded,
-                  label: 'Report Card',
+                  label: l.profile_menuReportCard,
                   color: const Color(0xFF10B981),
                   onTap: () => context.push('/home/report-card'),
                 ),
@@ -236,21 +238,21 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: 12),
           ],
           _MenuSection(
-            title: 'Account',
+            title: l.profile_sectionAccount,
             items: [
               _MenuItem(
                 icon: Icons.help_outline_rounded,
-                label: 'Help & Support',
+                label: l.profile_menuHelp,
                 color: AppTheme.textSecondary,
                 onTap: () => context.push('/home/help'),
               ),
               if (!isGuest)
                 _MenuItem(
                   icon: Icons.logout_rounded,
-                  label: 'Logout',
+                  label: l.profile_menuLogout,
                   color: AppTheme.errorRed,
                   isDestructive: true,
-                  onTap: () => _confirmLogout(context, ref),
+                  onTap: () => _confirmLogout(context, ref, l),
                 ),
             ],
           ),
@@ -260,24 +262,24 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref, AppLocalizations l) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to log out?'),
+        title: Text(l.profile_logoutTitle),
+        content: Text(l.profile_logoutBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l.common_cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: AppTheme.errorRed),
+            child: Text(
+              l.profile_menuLogout,
+              style: const TextStyle(color: AppTheme.errorRed),
             ),
           ),
         ],

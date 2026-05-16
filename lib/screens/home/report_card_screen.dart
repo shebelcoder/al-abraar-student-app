@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/guest_lock_screen.dart';
@@ -14,7 +15,6 @@ class ReportCardScreen extends ConsumerStatefulWidget {
 
 class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
   int _termIndex = 0;
-  static const _terms = ['Term 1', 'Term 2', 'Term 3'];
 
   static const _termData = [
     _TermData(
@@ -90,14 +90,16 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final terms = [l.reportCard_term1, l.reportCard_term2, l.reportCard_term3];
+
     if (ref.watch(isGuestProvider)) {
       return Scaffold(
         backgroundColor: AppTheme.warmBackground,
-        appBar: AppBar(title: const Text('Report Card')),
-        body: const GuestLockScreen(
-          featureName: 'Your Report Card',
-          description:
-              'Sign in to view your term grades,\nteacher comments, and subject results.',
+        appBar: AppBar(title: Text(l.reportCard_appBarTitle)),
+        body: GuestLockScreen(
+          featureName: l.reportCard_guestFeatureName,
+          description: l.reportCard_guestDesc,
           icon: Icons.description_rounded,
         ),
       );
@@ -105,14 +107,14 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
-        title: const Text('Report Card'),
+        title: Text(l.reportCard_appBarTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.download_rounded),
-            tooltip: 'Download PDF',
+            tooltip: l.reportCard_downloadTooltip,
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text('PDF download coming soon'),
+                content: Text(l.reportCard_downloadComingSoon),
                 behavior: SnackBarBehavior.floating,
                 backgroundColor: AppTheme.primaryGreen,
                 shape: RoundedRectangleBorder(
@@ -140,7 +142,7 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
               ],
             ),
             child: Row(
-              children: List.generate(_terms.length, (i) {
+              children: List.generate(terms.length, (i) {
                 final sel = i == _termIndex;
                 return Expanded(
                   child: GestureDetector(
@@ -155,7 +157,7 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
                         borderRadius: BorderRadius.circular(9),
                       ),
                       child: Text(
-                        _terms[i],
+                        terms[i],
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
@@ -196,8 +198,8 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Overall Grade',
-                        style: TextStyle(
+                    Text(l.reportCard_overallGrade,
+                        style: const TextStyle(
                             color: Colors.white70, fontSize: 13)),
                     const SizedBox(height: 4),
                     Text(
@@ -208,7 +210,7 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
                           fontWeight: FontWeight.w900,
                           height: 1),
                     ),
-                    Text('${_current.overallScore}% average',
+                    Text('${_current.overallScore}${l.reportCard_averageSuffix}',
                         style: const TextStyle(
                             color: Colors.white70, fontSize: 13)),
                   ],
@@ -218,17 +220,17 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     _CardStat(
-                        label: 'Attendance',
+                        label: l.reportCard_statAttendance,
                         value: '${_current.attendanceRate}%'),
                     const SizedBox(height: 10),
                     _CardStat(
-                        label: 'Subjects',
+                        label: l.reportCard_statSubjects,
                         value:
                             '${_current.subjects.length}'),
                     const SizedBox(height: 10),
                     _CardStat(
-                        label: 'Term',
-                        value: _terms[_termIndex]),
+                        label: l.reportCard_statTerm,
+                        value: terms[_termIndex]),
                   ],
                 ),
               ],
@@ -237,8 +239,8 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
           const SizedBox(height: 20),
 
           // Subject results
-          const Text('Subject Results',
-              style: TextStyle(
+          Text(l.reportCard_subjectResults,
+              style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textDark)),
@@ -283,8 +285,8 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Teacher's Comment",
-                            style: TextStyle(
+                        Text(l.reportCard_teacherComment,
+                            style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: AppTheme.textDark)),

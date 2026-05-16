@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../../theme/app_theme.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -38,7 +39,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _showOptions(BuildContext context) {
+  void _showOptions(BuildContext context, AppLocalizations l) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -61,13 +62,13 @@ class _ChatScreenState extends State<ChatScreen> {
             ListTile(
               leading: const Icon(Icons.notifications_off_outlined,
                   color: AppTheme.textDark),
-              title: const Text('Mute notifications'),
+              title: Text(l.chat_muteNotifications),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline_rounded,
                   color: AppTheme.textDark),
-              title: const Text('Clear chat'),
+              title: Text(l.chat_clearChat),
               onTap: () {
                 Navigator.pop(context);
                 setState(() => _messages.clear());
@@ -76,8 +77,8 @@ class _ChatScreenState extends State<ChatScreen> {
             ListTile(
               leading: const Icon(Icons.flag_outlined,
                   color: AppTheme.errorRed),
-              title: const Text('Report',
-                  style: TextStyle(color: AppTheme.errorRed)),
+              title: Text(l.chat_report,
+                  style: const TextStyle(color: AppTheme.errorRed)),
               onTap: () => Navigator.pop(context),
             ),
           ],
@@ -118,6 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
@@ -165,9 +167,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Text(
-                      'Online',
-                      style: TextStyle(
+                    Text(
+                      l.chat_online,
+                      style: const TextStyle(
                           fontSize: 11,
                           color: AppTheme.successGreen,
                           fontWeight: FontWeight.w500),
@@ -181,13 +183,12 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert_rounded),
-            onPressed: () => _showOptions(context),
+            onPressed: () => _showOptions(context, l),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Date divider
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
@@ -203,9 +204,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       color: const Color(0xFFE5E7EB),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text(
-                      'Today',
-                      style: TextStyle(
+                    child: Text(
+                      l.chat_today,
+                      style: const TextStyle(
                           fontSize: 11,
                           color: AppTheme.textSecondary,
                           fontWeight: FontWeight.w500),
@@ -217,7 +218,6 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
           ),
-          // Messages
           Expanded(
             child: ListView.builder(
               controller: _scrollCtrl,
@@ -236,7 +236,6 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          // Input bar
           Container(
             color: AppTheme.surfaceWhite,
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
@@ -249,7 +248,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         color: AppTheme.textSecondary),
                     onPressed: () => ScaffoldMessenger.of(context)
                         .showSnackBar(SnackBar(
-                      content: const Text('File sharing coming soon'),
+                      content: Text(l.chat_fileSharingComingSoon),
                       behavior: SnackBarBehavior.floating,
                       backgroundColor: AppTheme.primaryGreen,
                       shape: RoundedRectangleBorder(
@@ -272,13 +271,13 @@ class _ChatScreenState extends State<ChatScreen> {
                         maxLines: 4,
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => _send(),
-                        decoration: const InputDecoration(
-                          hintText: 'Type a message...',
-                          hintStyle: TextStyle(
+                        decoration: InputDecoration(
+                          hintText: l.chat_inputHint,
+                          hintStyle: const TextStyle(
                               color: AppTheme.textSecondary,
                               fontSize: 14),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
+                          contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 10),
                           filled: false,
                         ),
@@ -444,7 +443,7 @@ List<_Message> _mockMessages(String teacherName) {
         isMe: true,
         time: '9:08 AM'),
     _Message(
-        text: 'MashaAllah! For tomorrow\'s class, please review Surah Al-Mulk verses 1–10. We will be reciting together.',
+        text: "MashaAllah! For tomorrow's class, please review Surah Al-Mulk verses 1–10. We will be reciting together.",
         isMe: false,
         time: '9:09 AM'),
     _Message(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 
@@ -58,6 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       body: SafeArea(
@@ -98,9 +100,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Student Login',
-                  style: TextStyle(
+                Text(
+                  l.auth_login_title,
+                  style: const TextStyle(
                     fontSize: 16,
                     color: AppTheme.textSecondary,
                     fontWeight: FontWeight.w500,
@@ -112,14 +114,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Email Address',
-                    prefixIcon:
-                        Icon(Icons.email_outlined, color: AppTheme.primaryGreen),
+                  decoration: InputDecoration(
+                    labelText: l.auth_login_emailLabel,
+                    prefixIcon: const Icon(Icons.email_outlined,
+                        color: AppTheme.primaryGreen),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please enter your email';
-                    if (!v.contains('@')) return 'Enter a valid email';
+                    if (v == null || v.isEmpty) {
+                      return l.auth_login_emailEmpty;
+                    }
+                    if (!v.contains('@')) return l.auth_login_emailInvalid;
                     return null;
                   },
                 ),
@@ -131,7 +135,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _login(),
                   decoration: InputDecoration(
-                    labelText: 'Password',
+                    labelText: l.auth_login_passwordLabel,
                     prefixIcon: const Icon(Icons.lock_outline,
                         color: AppTheme.primaryGreen),
                     suffixIcon: IconButton(
@@ -141,13 +145,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             : Icons.visibility_off_outlined,
                         color: AppTheme.textSecondary,
                       ),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                   validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please enter your password';
-                    if (v.length < 6) return 'Password must be at least 6 characters';
+                    if (v == null || v.isEmpty) {
+                      return l.auth_login_passwordEmpty;
+                    }
+                    if (v.length < 6) return l.auth_login_passwordShort;
                     return null;
                   },
                 ),
@@ -156,11 +162,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
                     onTap: () => context.push('/forgot-password'),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Text(
-                        'Forgot Password?',
-                        style: TextStyle(
+                        l.auth_login_forgotPassword,
+                        style: const TextStyle(
                           fontSize: 13,
                           color: AppTheme.primaryGreen,
                           fontWeight: FontWeight.w600,
@@ -187,10 +193,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Demo: student@alabraar.com / student123',
+                          l.auth_login_demoHint,
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppTheme.goldAccent.withValues(alpha: 0.9),
+                            color: AppTheme.goldAccent
+                                .withValues(alpha: 0.9),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -214,7 +221,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               strokeWidth: 2.5,
                             ),
                           )
-                        : const Text('Login'),
+                        : Text(l.auth_login_button),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -227,10 +234,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       padding:
                           const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
-                        'or',
-                        style: TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontSize: 13),
+                        l.auth_login_orDivider,
+                        style: const TextStyle(
+                            color: AppTheme.textSecondary, fontSize: 13),
                       ),
                     ),
                     const Expanded(
@@ -244,12 +250,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   height: 52,
                   child: OutlinedButton.icon(
                     onPressed: _isLoading ? null : _continueAsGuest,
-                    icon: const Icon(Icons.visibility_outlined,
-                        size: 20),
-                    label: const Text('Continue as Guest'),
+                    icon: const Icon(Icons.visibility_outlined, size: 20),
+                    label: Text(l.auth_login_continueAsGuest),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                          color: AppTheme.primaryGreen),
+                      side: const BorderSide(color: AppTheme.primaryGreen),
                       foregroundColor: AppTheme.primaryGreen,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14)),
@@ -263,15 +267,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      "Don't have an account? ",
-                      style: TextStyle(color: AppTheme.textSecondary),
+                    Text(
+                      l.auth_login_noAccount,
+                      style:
+                          const TextStyle(color: AppTheme.textSecondary),
                     ),
                     GestureDetector(
                       onTap: () => context.push('/register'),
-                      child: const Text(
-                        'Register',
-                        style: TextStyle(
+                      child: Text(
+                        l.common_register,
+                        style: const TextStyle(
                           color: AppTheme.primaryGreen,
                           fontWeight: FontWeight.w700,
                         ),

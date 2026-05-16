@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/notifications_provider.dart';
 import '../../providers/practice_history_provider.dart';
 import '../../theme/app_theme.dart';
 
 const _mockName = 'Abdullah';
-const _mockNextClass = 'Quran Recitation with Sheikh Ahmed at 5:00 PM';
 
 class _LiveSession {
   final String teacherName;
@@ -22,7 +22,6 @@ class _LiveSession {
   });
 }
 
-// Mock a currently-active class for demo purposes
 const _mockLiveSession = _LiveSession(
   teacherName: 'Sheikh Ahmed',
   subject: 'Quran Recitation — Level 2',
@@ -51,8 +50,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final name = _getStudentName();
     final stats = ref.watch(userStatsProvider);
+
+    final actions = [
+      _ActionItem(icon: Icons.mic_rounded,            label: l.dashboard_action_aiPractice,  color: const Color(0xFF8B5CF6), route: '/practice/setup'),
+      _ActionItem(icon: Icons.calendar_today_rounded,  label: l.dashboard_action_mySchedule,  color: const Color(0xFF3B82F6), route: '/home/schedule'),
+      _ActionItem(icon: Icons.bar_chart_rounded,       label: l.dashboard_action_myProgress,  color: AppTheme.primaryGreen,   route: '/home/progress'),
+      _ActionItem(icon: Icons.event_available_rounded, label: l.dashboard_action_attendance,   color: const Color(0xFF0EA5E9), route: '/home/attendance'),
+      _ActionItem(icon: Icons.chat_bubble_rounded,     label: l.dashboard_action_messages,    color: const Color(0xFF6366F1), route: '/home/messages'),
+      _ActionItem(icon: Icons.emoji_events_rounded,    label: l.dashboard_action_leaderboard, color: AppTheme.goldAccent,     route: '/home/leaderboard'),
+    ];
+
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       body: RefreshIndicator(
@@ -72,9 +82,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'السلام عليكم',
-                          style: TextStyle(
+                        Text(
+                          l.dashboard_greeting,
+                          style: const TextStyle(
                             fontSize: 12,
                             color: AppTheme.textSecondary,
                             fontWeight: FontWeight.w500,
@@ -149,28 +159,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               padding: const EdgeInsets.all(16),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  const _LiveNowBanner(session: _mockLiveSession),
+                  _LiveNowBanner(session: _mockLiveSession, l: l),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Expanded(child: _StreakCard(streak: stats.streak)),
+                      Expanded(child: _StreakCard(streak: stats.streak, l: l)),
                       const SizedBox(width: 12),
-                      Expanded(child: _PointsCard(points: stats.totalPoints)),
+                      Expanded(child: _PointsCard(points: stats.totalPoints, l: l)),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const _TodaysClassCard(),
+                  _TodaysClassCard(l: l),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Quick Actions',
-                    style: TextStyle(
+                  Text(
+                    l.dashboard_quickActions,
+                    style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
                       color: AppTheme.textDark,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const _QuickActionsGrid(),
+                  _QuickActionsGrid(actions: actions),
                   const SizedBox(height: 80),
                 ]),
               ),
@@ -186,7 +196,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
 class _StreakCard extends StatelessWidget {
   final int streak;
-  const _StreakCard({required this.streak});
+  final AppLocalizations l;
+  const _StreakCard({required this.streak, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -211,16 +222,16 @@ class _StreakCard extends StatelessWidget {
           const Text('🔥', style: TextStyle(fontSize: 22)),
           const SizedBox(height: 8),
           Text(
-            '$streak Day',
+            l.dashboard_streakDays(streak),
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w800,
               color: Colors.white,
             ),
           ),
-          const Text(
-            'Streak',
-            style: TextStyle(fontSize: 13, color: Colors.white70),
+          Text(
+            l.dashboard_streak,
+            style: const TextStyle(fontSize: 13, color: Colors.white70),
           ),
         ],
       ),
@@ -230,7 +241,8 @@ class _StreakCard extends StatelessWidget {
 
 class _PointsCard extends StatelessWidget {
   final int points;
-  const _PointsCard({required this.points});
+  final AppLocalizations l;
+  const _PointsCard({required this.points, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -262,9 +274,9 @@ class _PointsCard extends StatelessWidget {
               color: Colors.white,
             ),
           ),
-          const Text(
-            'Points',
-            style: TextStyle(fontSize: 13, color: Colors.white70),
+          Text(
+            l.dashboard_points,
+            style: const TextStyle(fontSize: 13, color: Colors.white70),
           ),
         ],
       ),
@@ -273,7 +285,8 @@ class _PointsCard extends StatelessWidget {
 }
 
 class _TodaysClassCard extends StatelessWidget {
-  const _TodaysClassCard();
+  final AppLocalizations l;
+  const _TodaysClassCard({required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -301,15 +314,15 @@ class _TodaysClassCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
-                    "Today's Class",
-                    style: TextStyle(
+                  child: Text(
+                    l.dashboard_todaysClass,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -318,7 +331,7 @@ class _TodaysClassCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  _mockNextClass,
+                  'Quran Recitation with Sheikh Ahmed at 5:00 PM',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -332,7 +345,7 @@ class _TodaysClassCard extends StatelessWidget {
                         size: 14, color: Colors.white70),
                     const SizedBox(width: 4),
                     Text(
-                      'Starts in 2 hours',
+                      l.dashboard_startsIn,
                       style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 12),
@@ -349,14 +362,14 @@ class _TodaysClassCard extends StatelessWidget {
               backgroundColor: Colors.white,
               foregroundColor: AppTheme.primaryGreen,
               minimumSize: const Size(64, 40),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
-              textStyle:
-                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              textStyle: const TextStyle(
+                  fontWeight: FontWeight.w700, fontSize: 13),
             ),
-            child: const Text('Join'),
+            child: Text(l.dashboard_join),
           ),
         ],
       ),
@@ -365,40 +378,8 @@ class _TodaysClassCard extends StatelessWidget {
 }
 
 class _QuickActionsGrid extends StatelessWidget {
-  const _QuickActionsGrid();
-
-  static const _actions = [
-    _ActionItem(
-        icon: Icons.mic_rounded,
-        label: 'AI Practice',
-        color: Color(0xFF8B5CF6),
-        route: '/practice/setup'),
-    _ActionItem(
-        icon: Icons.calendar_today_rounded,
-        label: 'My Schedule',
-        color: Color(0xFF3B82F6),
-        route: '/home/schedule'),
-    _ActionItem(
-        icon: Icons.bar_chart_rounded,
-        label: 'My Progress',
-        color: AppTheme.primaryGreen,
-        route: '/home/progress'),
-    _ActionItem(
-        icon: Icons.event_available_rounded,
-        label: 'Attendance',
-        color: Color(0xFF0EA5E9),
-        route: '/home/attendance'),
-    _ActionItem(
-        icon: Icons.chat_bubble_rounded,
-        label: 'Messages',
-        color: Color(0xFF6366F1),
-        route: '/home/messages'),
-    _ActionItem(
-        icon: Icons.emoji_events_rounded,
-        label: 'Leaderboard',
-        color: AppTheme.goldAccent,
-        route: '/home/leaderboard'),
-  ];
+  final List<_ActionItem> actions;
+  const _QuickActionsGrid({required this.actions});
 
   @override
   Widget build(BuildContext context) {
@@ -411,9 +392,9 @@ class _QuickActionsGrid extends StatelessWidget {
         crossAxisSpacing: 12,
         childAspectRatio: 0.95,
       ),
-      itemCount: _actions.length,
+      itemCount: actions.length,
       itemBuilder: (context, index) {
-        final action = _actions[index];
+        final action = actions[index];
         return GestureDetector(
           onTap: () => context.go(action.route),
           child: Container(
@@ -438,7 +419,8 @@ class _QuickActionsGrid extends StatelessWidget {
                     color: action.color.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(action.icon, color: action.color, size: 24),
+                  child:
+                      Icon(action.icon, color: action.color, size: 24),
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -478,12 +460,18 @@ class _ActionItem {
 
 class _LiveNowBanner extends StatelessWidget {
   final _LiveSession session;
-  const _LiveNowBanner({required this.session});
+  final AppLocalizations l;
+  const _LiveNowBanner({required this.session, required this.l});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.go('/home/schedule'),
+      onTap: () => context.push('/live/viewer', extra: {
+        'teacherName': session.teacherName,
+        'subject': session.subject,
+        'teacherInitials': session.teacherInitials,
+        'teacherColor': session.teacherColor.toARGB32(),
+      }),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -503,7 +491,6 @@ class _LiveNowBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Pulsing LIVE dot
             Container(
               width: 10,
               height: 10,
@@ -513,9 +500,9 @@ class _LiveNowBanner extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            const Text(
-              'LIVE',
-              style: TextStyle(
+            Text(
+              l.live_badge,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
@@ -548,14 +535,15 @@ class _LiveNowBanner extends StatelessWidget {
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text(
-                'Join',
-                style: TextStyle(
+              child: Text(
+                l.dashboard_join,
+                style: const TextStyle(
                   color: Color(0xFFDC2626),
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
