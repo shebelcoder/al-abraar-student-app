@@ -18,7 +18,6 @@ class AuthState {
     this.user,
   });
 
-  /// Convenience getter — screens that need user fields as Map still work.
   Map<String, dynamic>? get userMap => user?.toJson();
 }
 
@@ -27,15 +26,12 @@ class AuthState {
 // ---------------------------------------------------------------------------
 
 class AuthNotifier extends AsyncNotifier<AuthState> {
-  AuthRepository get _repo =>
-      ref.read(authRepositoryProvider) ??
-      (throw StateError('AuthRepository not ready'));
+  AuthRepository get _repo => ref.read(authRepositoryProvider);
   AuthStorage get _storage => ref.read(authStorageProvider);
 
   @override
   Future<AuthState> build() async {
-    // Wait for the cookie jar (and therefore ApiClient) to initialise.
-    await ref.watch(cookieJarProvider.future);
+    // cookieJarProvider is now a plain synchronous Provider — no await needed.
 
     // Purge any leftover dev tokens from previous builds.
     final raw = await _storage.getAccessToken();
@@ -51,8 +47,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       final user = await _repo.getMe();
       return AuthState(isLoggedIn: true, user: user);
     } catch (_) {
-      // Token exists but /me failed (offline or expired) — stay logged in with
-      // cached user data if available.
+      // Token exists but /me failed (offline or expired) — use cached user.
       final cached = await _storage.getUser();
       if (cached != null) {
         return AuthState(
@@ -68,13 +63,12 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     state = const AsyncValue.loading();
     try {
       // Fire both auth flows in parallel:
-      //   1. /api/auth/mobile/login  → Bearer token (for /api/auth/mobile/* routes)
-      //   2. NextAuth credentials    → session cookie (for all other routes)
+      //   1. /api/auth/mobile/login → Bearer token (for /api/auth/mobile/*)
+      //   2. NextAuth credentials   → session cookie (for all other routes)
       final cookieSvc = ref.read(cookieAuthServiceProvider);
       final results = await Future.wait([
         _repo.login(email: email, password: password),
-        if (cookieSvc != null)
-          cookieSvc.login(email, password).catchError((_) {}),
+        cookieSvc.login(email, password).catchError((_) {}),
       ]);
       final user = results.first as UserModel;
 
@@ -90,7 +84,6 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
       state = AsyncValue.data(AuthState(isLoggedIn: true, user: user));
     } on ApiException catch (e) {
-      // Provide a friendlier message for common cases.
       final msg = e.statusCode == 401 || e.statusCode == 403
           ? 'Incorrect email or password. Please try again.'
           : e.message;
@@ -112,8 +105,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final client = ref.read(apiClientProvider) ??
-          (throw StateError('ApiClient not ready'));
+      final client = ref.read(apiClientProvider);
       final data = await client.post<Map<String, dynamic>>(
         ApiEndpoints.register,
         data: {
@@ -151,10 +143,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    // Clear both bearer token and session cookie.
     await Future.wait([
       _repo.logout(),
-      ref.read(cookieAuthServiceProvider)?.clearCookies() ?? Future.value(),
+      ref.read(cookieAuthServiceProvider).clearCookies(),
     ]);
     state = const AsyncValue.data(AuthState(isLoggedIn: false));
   }
@@ -173,7 +164,6 @@ final isGuestProvider = Provider<bool>((ref) {
   return ref.watch(authStateProvider).valueOrNull?.isGuest ?? false;
 });
 
-/// The signed-in user, or null.
 final currentUserProvider = Provider<UserModel?>((ref) {
   return ref.watch(authStateProvider).valueOrNull?.user;
 });

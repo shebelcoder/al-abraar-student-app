@@ -4,9 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'api_providers.dart';
 import 'auth_provider.dart';
 
-// Unwraps nullable ApiClient — throws if the cookie jar hasn't initialised yet.
-ApiClient _client(Ref ref) =>
-    ref.read(apiClientProvider) ?? (throw StateError('ApiClient not ready'));
+// Convenience accessor — apiClientProvider is now always non-nullable.
+ApiClient _client(Ref ref) => ref.read(apiClientProvider);
 
 // ---------------------------------------------------------------------------
 // Dashboard  →  /api/student/dashboard
