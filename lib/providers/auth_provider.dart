@@ -27,11 +27,16 @@ class AuthState {
 // ---------------------------------------------------------------------------
 
 class AuthNotifier extends AsyncNotifier<AuthState> {
-  AuthRepository get _repo => ref.read(authRepositoryProvider);
+  AuthRepository get _repo =>
+      ref.read(authRepositoryProvider) ??
+      (throw StateError('AuthRepository not ready'));
   AuthStorage get _storage => ref.read(authStorageProvider);
 
   @override
   Future<AuthState> build() async {
+    // Wait for the cookie jar (and therefore ApiClient) to initialise.
+    await ref.watch(cookieJarProvider.future);
+
     // Purge any leftover dev tokens from previous builds.
     final raw = await _storage.getAccessToken();
     if (raw == 'demo_token') {
@@ -62,7 +67,16 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   Future<void> login(String email, String password) async {
     state = const AsyncValue.loading();
     try {
-      final user = await _repo.login(email: email, password: password);
+      // Fire both auth flows in parallel:
+      //   1. /api/auth/mobile/login  → Bearer token (for /api/auth/mobile/* routes)
+      //   2. NextAuth credentials    → session cookie (for all other routes)
+      final cookieSvc = ref.read(cookieAuthServiceProvider);
+      final results = await Future.wait([
+        _repo.login(email: email, password: password),
+        if (cookieSvc != null)
+          cookieSvc.login(email, password).catchError((_) {}),
+      ]);
+      final user = results.first as UserModel;
 
       // This app is student-only — block other roles.
       if (user.role.toUpperCase() != 'STUDENT') {
@@ -98,7 +112,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final client = ref.read(apiClientProvider);
+      final client = ref.read(apiClientProvider) ??
+          (throw StateError('ApiClient not ready'));
       final data = await client.post<Map<String, dynamic>>(
         ApiEndpoints.register,
         data: {
@@ -136,7 +151,11 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await _repo.logout();
+    // Clear both bearer token and session cookie.
+    await Future.wait([
+      _repo.logout(),
+      ref.read(cookieAuthServiceProvider)?.clearCookies() ?? Future.value(),
+    ]);
     state = const AsyncValue.data(AuthState(isLoggedIn: false));
   }
 

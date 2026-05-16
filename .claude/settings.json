@@ -21,7 +21,12 @@
       "Read(//Users/shebelfaraharab/Documents/al-abraar/**)",
       "Bash(find /Users/shebelfaraharab/Documents -name \"config.ts\" -path \"*/api/*\" 2>/dev/null | head -5)",
       "Read(//Users/shebelfaraharab/Documents/**)",
-      "Bash(find /Users/shebelfaraharab/Documents -name \".env*\" -not -path \"*/node_modules/*\" 2>/dev/null | head -10)"
+      "Bash(find /Users/shebelfaraharab/Documents -name \".env*\" -not -path \"*/node_modules/*\" 2>/dev/null | head -10)",
+      "Bash(grep -n \"deleteAll\\\\|delete\\\\b\" /Users/shebelfaraharab/.pub-cache/hosted/pub.dev/cookie_jar-4.0.9/lib/src/persist_cookie_jar.dart 2>/dev/null | head -10)",
+      "Read(//Users/shebelfaraharab/.pub-cache/hosted/pub.dev/cookie_jar-4.0.9/lib/src/**)",
+      "Bash(find /Users/shebelfaraharab/.pub-cache -path \"*/cookie_jar-4*\" -name \"*.dart\" 2>/dev/null | head -5 && grep -rn \"void delete\\\\|Future delete\" /Users/shebelfaraharab/.pub-cache/hosted/pub.dev/cookie_jar-4.0.9/lib/ 2>/dev/null | head -10)",
+      "Read(//Users/shebelfaraharab/.pub-cache/**)",
+      "Read(//Users/shebelfaraharab/.pub-cache/hosted/pub.dev/cookie_jar-4.0.9/lib/**)"
     ],
     "additionalDirectories": [
       "/Users/shebelfaraharab/.claude",

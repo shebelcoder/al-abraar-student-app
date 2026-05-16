@@ -108,6 +108,7 @@ class NotificationsNotifier extends AsyncNotifier<List<AppNotification>> {
 
     try {
       final client = ref.read(apiClientProvider);
+      if (client == null) return [];
       final data =
           await client.get<List<dynamic>>(ApiEndpoints.notifications);
       return data
@@ -138,7 +139,7 @@ class NotificationsNotifier extends AsyncNotifier<List<AppNotification>> {
   Future<void> _markReadOnServer(String id) async {
     try {
       final client = ref.read(apiClientProvider);
-      await client.post<void>('${ApiEndpoints.notifications}/$id/read');
+      await client?.post<void>('${ApiEndpoints.notifications}/$id/read');
     } catch (_) {}
   }
 }
