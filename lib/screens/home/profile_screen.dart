@@ -15,8 +15,8 @@ class ProfileScreen extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final isGuest = authState.valueOrNull?.isGuest ?? false;
     final user = authState.valueOrNull?.user;
-    final name = (user?['name'] as String?) ?? 'Abdullah Ahmad';
-    final email = (user?['email'] as String?) ?? 'student@alabraar.com';
+    final name = user?.name ?? 'Abdullah Ahmad';
+    final email = user?.email ?? 'student@alabraar.com';
     final initials = name.isNotEmpty
         ? name.split(' ').map((w) => w[0]).take(2).join().toUpperCase()
         : 'AA';

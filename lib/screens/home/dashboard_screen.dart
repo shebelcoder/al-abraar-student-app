@@ -39,7 +39,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _getStudentName() {
     final user = ref.read(authStateProvider).valueOrNull?.user;
-    final name = user?['name'] as String?;
+    final name = user?.name;
     if (name != null && name.isNotEmpty) return name.split(' ').first;
     return _mockName;
   }

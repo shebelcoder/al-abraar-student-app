@@ -10,10 +10,10 @@ class NotificationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final notifs = ref.watch(notificationsProvider);
+    final notifsAsync = ref.watch(notificationsProvider);
+    final notifs = notifsAsync.valueOrNull ?? [];
     final unread = notifs.where((n) => !n.read).length;
 
-    // Internal keys map to localized display labels
     final groupLabels = {
       'Today': l.notifications_groupToday,
       'Yesterday': l.notifications_groupYesterday,
@@ -61,23 +61,25 @@ class NotificationsScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: notifs.isEmpty
-          ? _Empty(l: l)
-          : ListView(
-              children: [
-                for (final group in groups)
-                  if (notifs.any((n) => n.group == group)) ...[
-                    _GroupHeader(label: groupLabels[group] ?? group),
-                    ...notifs
-                        .where((n) => n.group == group)
-                        .map((n) => _NotifTile(
-                              notif: n,
-                              onTap: () => ref
-                                  .read(notificationsProvider.notifier)
-                                  .markRead(n.id),
-                            )),
-                  ],
-                const SizedBox(height: 80),
+      body: notifsAsync.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : notifs.isEmpty
+              ? _Empty(l: l)
+              : ListView(
+                  children: [
+                    for (final group in groups)
+                      if (notifs.any((n) => n.group == group)) ...[
+                        _GroupHeader(label: groupLabels[group] ?? group),
+                        ...notifs
+                            .where((n) => n.group == group)
+                            .map((n) => _NotifTile(
+                                  notif: n,
+                                  onTap: () => ref
+                                      .read(notificationsProvider.notifier)
+                                      .markRead(n.id),
+                                )),
+                      ],
+                    const SizedBox(height: 80),
               ],
             ),
     );

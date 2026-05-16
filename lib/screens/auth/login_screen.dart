@@ -14,8 +14,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController(text: 'student@alabraar.com');
-  final _passwordCtrl = TextEditingController(text: 'student123');
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -173,36 +173,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Demo hint
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.goldAccent.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: AppTheme.goldAccent.withValues(alpha: 0.4)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline,
-                          size: 16, color: AppTheme.goldAccent),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          l.auth_login_demoHint,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.goldAccent
-                                .withValues(alpha: 0.9),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
                 const SizedBox(height: 28),

@@ -24,8 +24,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final l = AppLocalizations.of(context);
     final authState = ref.watch(authStateProvider);
     final user = authState.valueOrNull?.user;
-    final name = (user?['name'] as String?) ?? 'Abdullah Ahmad';
-    final email = (user?['email'] as String?) ?? 'student@alabraar.com';
+    final name = user?.name ?? 'Abdullah Ahmad';
+    final email = user?.email ?? 'student@alabraar.com';
     final currentLocale = ref.watch(localeProvider);
 
     // Native language names — never translated

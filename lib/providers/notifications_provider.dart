@@ -1,9 +1,13 @@
+import 'package:al_abraar_core/al_abraar_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'api_providers.dart';
+import 'auth_provider.dart';
 
 enum NotifType { reminder, message, achievement, grade, announcement }
 
 class AppNotification {
-  final int id;
+  final String id;
   final NotifType type;
   final String title;
   final String body;
@@ -30,103 +34,123 @@ class AppNotification {
         group: group,
         read: read ?? this.read,
       );
+
+  static NotifType _typeFrom(String? raw) {
+    switch (raw?.toLowerCase()) {
+      case 'message':
+        return NotifType.message;
+      case 'achievement':
+      case 'badge':
+        return NotifType.achievement;
+      case 'grade':
+      case 'mark':
+        return NotifType.grade;
+      case 'announcement':
+        return NotifType.announcement;
+      default:
+        return NotifType.reminder;
+    }
+  }
+
+  static String _groupFrom(String? createdAt) {
+    if (createdAt == null) return 'Earlier';
+    final dt = DateTime.tryParse(createdAt)?.toLocal();
+    if (dt == null) return 'Earlier';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(dt.year, dt.month, dt.day);
+    final diff = today.difference(day).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    return 'Earlier';
+  }
+
+  static String _timeFrom(String? createdAt) {
+    if (createdAt == null) return '';
+    final dt = DateTime.tryParse(createdAt)?.toLocal();
+    if (dt == null) return '';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(dt.year, dt.month, dt.day);
+    final diff = today.difference(day).inDays;
+    if (diff == 0) {
+      final h = dt.hour;
+      final m = dt.minute.toString().padLeft(2, '0');
+      final period = h >= 12 ? 'PM' : 'AM';
+      final hour = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+      return '$hour:$m $period';
+    }
+    if (diff == 1) return 'Yesterday';
+    return '$diff days ago';
+  }
+
+  factory AppNotification.fromJson(Map<String, dynamic> json) {
+    return AppNotification(
+      id: json['id']?.toString() ?? '',
+      type: _typeFrom(json['type']?.toString()),
+      title: json['title']?.toString() ?? '',
+      body: (json['body'] ?? json['message'] ?? json['content'])?.toString() ?? '',
+      time: _timeFrom(json['createdAt']?.toString()),
+      group: _groupFrom(json['createdAt']?.toString()),
+      read: json['read'] as bool? ?? json['isRead'] as bool? ?? false,
+    );
+  }
 }
 
-final _seed = <AppNotification>[
-  AppNotification(
-    id: 1,
-    type: NotifType.reminder,
-    title: 'Class in 30 minutes',
-    body: 'Quran Recitation with Sheikh Ahmed starts at 5:00 PM',
-    time: '4:30 PM',
-    group: 'Today',
-    read: false,
-  ),
-  AppNotification(
-    id: 2,
-    type: NotifType.achievement,
-    title: 'Badge Unlocked!',
-    body: "You earned the '7-Day Streak' badge. Keep it up!",
-    time: '2:15 PM',
-    group: 'Today',
-    read: false,
-  ),
-  AppNotification(
-    id: 3,
-    type: NotifType.message,
-    title: 'New message from Sheikh Ahmed',
-    body: 'Well done on your Tajweed practice today!',
-    time: '1:00 PM',
-    group: 'Today',
-    read: false,
-  ),
-  AppNotification(
-    id: 4,
-    type: NotifType.grade,
-    title: 'New mark posted',
-    body: 'Your Tajweed assessment has been marked: 88/100',
-    time: 'Yesterday',
-    group: 'Yesterday',
-    read: true,
-  ),
-  AppNotification(
-    id: 5,
-    type: NotifType.announcement,
-    title: 'Class Group – Level 2',
-    body: "Don't forget tomorrow's class is at 9 AM instead of the usual time.",
-    time: 'Yesterday',
-    group: 'Yesterday',
-    read: true,
-  ),
-  AppNotification(
-    id: 6,
-    type: NotifType.reminder,
-    title: 'Daily practice reminder',
-    body: "You haven't practiced today. Keep your streak going!",
-    time: 'Yesterday',
-    group: 'Yesterday',
-    read: true,
-  ),
-  AppNotification(
-    id: 7,
-    type: NotifType.achievement,
-    title: 'Al-Fatiha Complete!',
-    body: "You memorised Al-Fatiha perfectly. Masha'Allah!",
-    time: '2 days ago',
-    group: 'Earlier',
-    read: true,
-  ),
-  AppNotification(
-    id: 8,
-    type: NotifType.grade,
-    title: 'Report card available',
-    body: 'Your Term 1 report card is now ready to view.',
-    time: '3 days ago',
-    group: 'Earlier',
-    read: true,
-  ),
-];
-
-class NotificationsNotifier
-    extends Notifier<List<AppNotification>> {
+class NotificationsNotifier extends AsyncNotifier<List<AppNotification>> {
   @override
-  List<AppNotification> build() => List.from(_seed);
+  Future<List<AppNotification>> build() async {
+    // Re-fetch whenever auth changes (login / logout).
+    ref.watch(authStateProvider);
 
-  void markRead(int id) {
-    state = state
-        .map((n) => n.id == id ? n.copyWith(read: true) : n)
-        .toList();
+    final isGuest = ref.read(isGuestProvider);
+    if (isGuest) return [];
+
+    try {
+      final client = ref.read(apiClientProvider);
+      final data =
+          await client.get<List<dynamic>>(ApiEndpoints.notifications);
+      return data
+          .cast<Map<String, dynamic>>()
+          .map(AppNotification.fromJson)
+          .toList();
+    } on ApiException {
+      return [];
+    }
+  }
+
+  void markRead(String id) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncData(
+      current.map((n) => n.id == id ? n.copyWith(read: true) : n).toList(),
+    );
+    // Fire-and-forget — best-effort server sync.
+    _markReadOnServer(id);
   }
 
   void markAllRead() {
-    state = state.map((n) => n.copyWith(read: true)).toList();
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncData(current.map((n) => n.copyWith(read: true)).toList());
+  }
+
+  Future<void> _markReadOnServer(String id) async {
+    try {
+      final client = ref.read(apiClientProvider);
+      await client.post<void>('${ApiEndpoints.notifications}/$id/read');
+    } catch (_) {}
   }
 }
 
 final notificationsProvider =
-    NotifierProvider<NotificationsNotifier, List<AppNotification>>(
+    AsyncNotifierProvider<NotificationsNotifier, List<AppNotification>>(
         NotificationsNotifier.new);
 
 final unreadCountProvider = Provider<int>((ref) {
-  return ref.watch(notificationsProvider).where((n) => !n.read).length;
+  return ref
+      .watch(notificationsProvider)
+      .valueOrNull
+      ?.where((n) => !n.read)
+      .length ?? 0;
 });

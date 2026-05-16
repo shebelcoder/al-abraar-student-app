@@ -1,6 +1,7 @@
+import 'package:al_abraar_core/al_abraar_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:dio/dio.dart';
+
+import 'api_providers.dart';
 
 // ---------------------------------------------------------------------------
 // Auth state
@@ -9,66 +10,80 @@ import 'package:dio/dio.dart';
 class AuthState {
   final bool isLoggedIn;
   final bool isGuest;
-  final Map<String, dynamic>? user;
+  final UserModel? user;
 
-  AuthState({required this.isLoggedIn, this.isGuest = false, this.user});
+  const AuthState({
+    required this.isLoggedIn,
+    this.isGuest = false,
+    this.user,
+  });
+
+  /// Convenience getter — screens that need user fields as Map still work.
+  Map<String, dynamic>? get userMap => user?.toJson();
 }
 
+// ---------------------------------------------------------------------------
+// Auth notifier
+// ---------------------------------------------------------------------------
+
 class AuthNotifier extends AsyncNotifier<AuthState> {
-  static const _storage = FlutterSecureStorage();
-  static const String _baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://localhost:3000',
-  );
+  AuthRepository get _repo => ref.read(authRepositoryProvider);
+  AuthStorage get _storage => ref.read(authStorageProvider);
 
   @override
   Future<AuthState> build() async {
-    final token = await _storage.read(key: 'access_token');
-    if (token == null) return AuthState(isLoggedIn: false);
+    // Purge any leftover dev tokens from previous builds.
+    final raw = await _storage.getAccessToken();
+    if (raw == 'demo_token') {
+      await _storage.clearAll();
+      return const AuthState(isLoggedIn: false);
+    }
+
+    final isLoggedIn = await _repo.isLoggedIn();
+    if (!isLoggedIn) return const AuthState(isLoggedIn: false);
+
     try {
-      final dio = Dio(BaseOptions(
-        baseUrl: _baseUrl,
-        headers: {'Authorization': 'Bearer $token'},
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-      ));
-      final res = await dio.get('/api/auth/mobile/me');
-      return AuthState(
-        isLoggedIn: true,
-        user: res.data as Map<String, dynamic>?,
-      );
+      final user = await _repo.getMe();
+      return AuthState(isLoggedIn: true, user: user);
     } catch (_) {
-      return AuthState(isLoggedIn: true);
+      // Token exists but /me failed (offline or expired) — stay logged in with
+      // cached user data if available.
+      final cached = await _storage.getUser();
+      if (cached != null) {
+        return AuthState(
+          isLoggedIn: true,
+          user: UserModel.fromJson(cached),
+        );
+      }
+      return const AuthState(isLoggedIn: true);
     }
   }
 
   Future<void> login(String email, String password) async {
     state = const AsyncValue.loading();
     try {
-      final dio = Dio(BaseOptions(
-        baseUrl: _baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-      ));
-      final res = await dio.post(
-        '/api/auth/mobile/login',
-        data: {'email': email, 'password': password},
-      );
-      final data = res.data as Map<String, dynamic>;
-      await _storage.write(
-          key: 'access_token', value: data['accessToken'] as String?);
-      await _storage.write(
-          key: 'refresh_token', value: data['refreshToken'] as String?);
-      state = AsyncValue.data(
-        AuthState(
-          isLoggedIn: true,
-          user: data['user'] as Map<String, dynamic>?,
-        ),
-      );
-    } on DioException catch (e) {
-      final msg =
-          (e.response?.data as Map?)?['message'] ?? 'Login failed';
+      final user = await _repo.login(email: email, password: password);
+
+      // This app is student-only — block other roles.
+      if (user.role.toUpperCase() != 'STUDENT') {
+        state = AsyncValue.error(
+          'This app is for students only. Please use the correct Al-Abraar app for your role.',
+          StackTrace.current,
+        );
+        await _storage.clearAll();
+        return;
+      }
+
+      state = AsyncValue.data(AuthState(isLoggedIn: true, user: user));
+    } on ApiException catch (e) {
+      // Provide a friendlier message for common cases.
+      final msg = e.statusCode == 401 || e.statusCode == 403
+          ? 'Incorrect email or password. Please try again.'
+          : e.message;
       state = AsyncValue.error(msg, StackTrace.current);
+      rethrow;
+    } catch (e) {
+      state = AsyncValue.error(e.toString(), StackTrace.current);
       rethrow;
     }
   }
@@ -83,13 +98,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final dio = Dio(BaseOptions(
-        baseUrl: _baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-      ));
-      final res = await dio.post(
-        '/api/auth/mobile/register',
+      final client = ref.read(apiClientProvider);
+      final data = await client.post<Map<String, dynamic>>(
+        ApiEndpoints.register,
         data: {
           'name': name,
           'email': email,
@@ -97,45 +108,39 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           'age': age,
           'region': region,
           'isParentRegistering': isParentRegistering,
+          'role': 'STUDENT',
         },
       );
-      final data = res.data as Map<String, dynamic>;
-      await _storage.write(
-          key: 'access_token', value: data['accessToken'] as String?);
-      await _storage.write(
-          key: 'refresh_token', value: data['refreshToken'] as String?);
-      state = AsyncValue.data(AuthState(
-        isLoggedIn: true,
-        user: data['user'] as Map<String, dynamic>?,
-      ));
-    } on DioException catch (e) {
-      final msg =
-          (e.response?.data as Map?)?['message'] ?? 'Registration failed';
-      state = AsyncValue.error(msg, StackTrace.current);
+      final accessToken =
+          (data['accessToken'] ?? data['access_token']) as String;
+      final refreshToken =
+          (data['refreshToken'] ?? data['refresh_token']) as String;
+      await _storage.saveTokens(accessToken, refreshToken);
+
+      final userJson = data['user'] as Map<String, dynamic>? ?? data;
+      final user = UserModel.fromJson(userJson);
+      await _storage.saveUser(user.toJson());
+
+      state = AsyncValue.data(AuthState(isLoggedIn: true, user: user));
+    } on ApiException catch (e) {
+      state = AsyncValue.error(e.message, StackTrace.current);
+      rethrow;
+    } catch (e) {
+      state = AsyncValue.error(e.toString(), StackTrace.current);
       rethrow;
     }
   }
 
   Future<void> loginAsGuest() async {
-    state = AsyncValue.data(AuthState(isLoggedIn: false, isGuest: true));
+    state = const AsyncValue.data(AuthState(isLoggedIn: false, isGuest: true));
   }
 
   Future<void> logout() async {
-    final token = await _storage.read(key: 'access_token');
-    if (token != null) {
-      try {
-        final dio = Dio(BaseOptions(
-          baseUrl: _baseUrl,
-          headers: {'Authorization': 'Bearer $token'},
-        ));
-        await dio.post('/api/auth/mobile/logout');
-      } catch (_) {}
-    }
-    await _storage.deleteAll();
-    state = AsyncValue.data(AuthState(isLoggedIn: false));
+    await _repo.logout();
+    state = const AsyncValue.data(AuthState(isLoggedIn: false));
   }
 
-  Map<String, dynamic>? get currentUser => state.valueOrNull?.user;
+  UserModel? get currentUser => state.valueOrNull?.user;
 }
 
 final authStateProvider =
@@ -149,64 +154,7 @@ final isGuestProvider = Provider<bool>((ref) {
   return ref.watch(authStateProvider).valueOrNull?.isGuest ?? false;
 });
 
-final accessTokenProvider = FutureProvider<String?>((ref) async {
-  const storage = FlutterSecureStorage();
-  return storage.read(key: 'access_token');
-});
-
-final dioProvider = Provider<Dio>((ref) {
-  const baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://localhost:3000',
-  );
-  final dio = Dio(BaseOptions(
-    baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 15),
-  ));
-
-  dio.interceptors.add(InterceptorsWrapper(
-    onRequest: (options, handler) async {
-      const storage = FlutterSecureStorage();
-      final token = await storage.read(key: 'access_token');
-      if (token != null) {
-        options.headers['Authorization'] = 'Bearer $token';
-      }
-      handler.next(options);
-    },
-    onError: (error, handler) async {
-      if (error.response?.statusCode == 401) {
-        try {
-          const storage = FlutterSecureStorage();
-          final refreshToken =
-              await storage.read(key: 'refresh_token');
-          if (refreshToken != null) {
-            const String refreshBase = String.fromEnvironment(
-              'API_BASE_URL',
-              defaultValue: 'http://localhost:3000',
-            );
-            final refreshDio =
-                Dio(BaseOptions(baseUrl: refreshBase));
-            final res = await refreshDio.post(
-              '/api/auth/mobile/refresh',
-              data: {'refreshToken': refreshToken},
-            );
-            final data = res.data as Map<String, dynamic>;
-            await storage.write(
-                key: 'access_token',
-                value: data['accessToken'] as String?);
-            final opts = error.requestOptions;
-            opts.headers['Authorization'] =
-                'Bearer ${data['accessToken']}';
-            final retryRes = await refreshDio.fetch(opts);
-            handler.resolve(retryRes);
-            return;
-          }
-        } catch (_) {}
-        await const FlutterSecureStorage().deleteAll();
-      }
-      handler.next(error);
-    },
-  ));
-  return dio;
+/// The signed-in user, or null.
+final currentUserProvider = Provider<UserModel?>((ref) {
+  return ref.watch(authStateProvider).valueOrNull?.user;
 });

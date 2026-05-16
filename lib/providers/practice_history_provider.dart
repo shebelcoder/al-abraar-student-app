@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../screens/practice/session_setup_screen.dart';
+import 'student_providers.dart' show dashboardProvider;
 
 // ---------------------------------------------------------------------------
 // Session model
@@ -192,10 +193,24 @@ int _computeStreak(List<PracticeSession> history) {
 
 final userStatsProvider = Provider<UserStats>((ref) {
   final history = ref.watch(practiceHistoryProvider);
+
+  // Pull real streak / points from /api/student/dashboard (same as Expo app).
+  // Falls back to locally-computed values while loading or if offline.
+  final dashAsync = ref.watch(dashboardProvider);
+  final dashboard = dashAsync.valueOrNull;
+
+  final totalPoints =
+      (dashboard?['weeklyPoints'] as int?) ??
+      history.fold<int>(0, (sum, s) => sum + s.score);
+
+  final streak =
+      (dashboard?['currentStreak'] as int?) ??
+      _computeStreak(history);
+
   return UserStats(
-    totalPoints: history.fold(0, (sum, s) => sum + s.score),
-    streak: _computeStreak(history),
+    totalPoints: totalPoints,
+    streak: streak,
     totalSessions: history.length,
-    totalAyahsRecited: history.fold(0, (sum, s) => sum + s.ayahCount),
+    totalAyahsRecited: history.fold<int>(0, (sum, s) => sum + s.ayahCount),
   );
 });

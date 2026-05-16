@@ -2,7 +2,33 @@
   "permissions": {
     "allow": [
       "Bash(flutter analyze *)",
-      "Bash(flutter pub *)"
+      "Bash(flutter pub *)",
+      "Bash(xcrun simctl *)",
+      "Bash(flutter run *)",
+      "Bash(flutter gen-l10n *)",
+      "Bash(flutter build *)",
+      "Bash(git add *)",
+      "Bash(git push *)",
+      "Bash(echo \"Flutter run launched in background PID: $!\")",
+      "Bash(pkill -f \"flutter run\")",
+      "Bash(ipconfig getifaddr *)",
+      "Bash(curl -s --max-time 3 http://localhost:3000/api/auth/mobile/login -X POST -H \"Content-Type: application/json\" -d '{\"email\":\"test\",\"password\":\"test\"}')",
+      "Bash(curl -s --max-time 3 http://localhost:3000/api/auth/providers)",
+      "Bash(curl -s --max-time 3 http://localhost:3000/api/auth/signin)",
+      "Bash(awk '{print $1, $9}')",
+      "Bash(lsof -iTCP -sTCP:LISTEN -P)",
+      "Read(//Users/shebelfaraharab/Documents/al-abraar/apps/**)",
+      "Read(//Users/shebelfaraharab/Documents/al-abraar/**)",
+      "Bash(find /Users/shebelfaraharab/Documents -name \"config.ts\" -path \"*/api/*\" 2>/dev/null | head -5)",
+      "Read(//Users/shebelfaraharab/Documents/**)",
+      "Bash(find /Users/shebelfaraharab/Documents -name \".env*\" -not -path \"*/node_modules/*\" 2>/dev/null | head -10)"
+    ],
+    "additionalDirectories": [
+      "/Users/shebelfaraharab/.claude",
+      "/Users/shebelfaraharab/Documents/al-abraar/packages/al_abraar_core/lib/utils",
+      "/Users/shebelfaraharab/Documents/al-abraar/packages/al_abraar_core/lib/api",
+      "/Users/shebelfaraharab/Documents/al-abraar/packages/al_abraar_core/lib/theme",
+      "/Users/shebelfaraharab/Documents/al-abraar/packages/al_abraar_core"
     ]
   }
 }
