@@ -124,6 +124,13 @@ class _QuranScreenState extends ConsumerState<QuranScreen> {
                     ],
                   ),
                 ),
+                // Page view toggle
+                IconButton(
+                  icon: const Icon(Icons.menu_book_rounded,
+                      color: AppTheme.primaryGreen),
+                  tooltip: 'Mushaf page view',
+                  onPressed: () => context.push('/quran/pages'),
+                ),
                 // Language selector
                 GestureDetector(
                   onTap: () =>

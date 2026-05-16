@@ -24,6 +24,7 @@ import '../screens/home/settings_screen.dart';
 import '../screens/messages/chat_screen.dart';
 import '../screens/practice/ai_practice_session_screen.dart';
 import '../screens/practice/session_setup_screen.dart';
+import '../screens/quran/quran_page_view_screen.dart';
 import '../screens/quran/quran_player_screen.dart';
 import '../screens/quran/quran_screen.dart';
 import '../widgets/main_shell.dart';
@@ -154,6 +155,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const QuranScreen(),
           ),
         ],
+      ),
+      // Quran mushaf page view — full screen (no bottom nav)
+      GoRoute(
+        path: '/quran/pages',
+        builder: (_, state) {
+          final page = int.tryParse(state.uri.queryParameters['page'] ?? '') ?? 1;
+          return QuranPageViewScreen(initialPage: page);
+        },
       ),
       // Quran player — full screen (no bottom nav)
       GoRoute(
