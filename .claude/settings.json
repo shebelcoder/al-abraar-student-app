@@ -26,7 +26,16 @@
       "Read(//Users/shebelfaraharab/.pub-cache/hosted/pub.dev/cookie_jar-4.0.9/lib/src/**)",
       "Bash(find /Users/shebelfaraharab/.pub-cache -path \"*/cookie_jar-4*\" -name \"*.dart\" 2>/dev/null | head -5 && grep -rn \"void delete\\\\|Future delete\" /Users/shebelfaraharab/.pub-cache/hosted/pub.dev/cookie_jar-4.0.9/lib/ 2>/dev/null | head -10)",
       "Read(//Users/shebelfaraharab/.pub-cache/**)",
-      "Read(//Users/shebelfaraharab/.pub-cache/hosted/pub.dev/cookie_jar-4.0.9/lib/**)"
+      "Read(//Users/shebelfaraharab/.pub-cache/hosted/pub.dev/cookie_jar-4.0.9/lib/**)",
+      "Bash(curl -s -c /tmp/al_abraar_cookies.txt -b /tmp/al_abraar_cookies.txt -X POST https://alabraarnetwork.com/api/auth/mobile/login -H 'Content-Type: application/json' -d '{\"email\":\"laylaahmed@gmail.com\",\"password\":\"Ma1234567890\"}')",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt https://alabraarnetwork.com/api/auth/csrf)",
+      "Bash(awk '{print $6\": \"$7}')",
+      "Bash(cat /tmp/cookies.txt)",
+      "Read(//private/tmp/**)",
+      "Bash(curl -s -b /tmp/cookies.txt -H 'Authorization: Bearer 284921ecf9bffe3a2dbd265b4c84636f283ae13c236908b770197774e3f19235' https://alabraarnetwork.com/api/student/dashboard)",
+      "Bash(curl -sv -b /tmp/cookies.txt -H 'Authorization: Bearer 284921ecf9bffe3a2dbd265b4c84636f283ae13c236908b770197774e3f19235' https://alabraarnetwork.com/api/student/dashboard)",
+      "Bash(curl -s -b /tmp/cookies.txt -H 'Authorization: Bearer 284921ecf9bffe3a2dbd265b4c84636f283ae13c236908b770197774e3f19235' https://alabraarnetwork.com/api/gamification/badges)"
     ],
     "additionalDirectories": [
       "/Users/shebelfaraharab/.claude",

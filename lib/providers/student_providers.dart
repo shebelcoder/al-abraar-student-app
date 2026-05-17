@@ -32,25 +32,28 @@ final liveBroadcastsProvider =
 
 // ---------------------------------------------------------------------------
 // Learning sessions  →  /api/student/live-sessions
+// Response: { "liveSessions": [...] }
 // ---------------------------------------------------------------------------
 
 final upcomingSessionsProvider =
     FutureProvider<List<SessionModel>>((ref) async {
   ref.watch(authStateProvider);
-  final data = await _client(ref).get<List<dynamic>>(
+  final body = await _client(ref).get<Map<String, dynamic>>(
     ApiEndpoints.sessions,
     queryParameters: {'filter': 'upcoming'},
   );
-  return data.cast<Map<String, dynamic>>().map(SessionModel.fromJson).toList();
+  final list = body['liveSessions'] as List<dynamic>? ?? [];
+  return list.cast<Map<String, dynamic>>().map(SessionModel.fromJson).toList();
 });
 
 final pastSessionsProvider = FutureProvider<List<SessionModel>>((ref) async {
   ref.watch(authStateProvider);
-  final data = await _client(ref).get<List<dynamic>>(
+  final body = await _client(ref).get<Map<String, dynamic>>(
     ApiEndpoints.sessions,
     queryParameters: {'filter': 'past'},
   );
-  return data.cast<Map<String, dynamic>>().map(SessionModel.fromJson).toList();
+  final list = body['liveSessions'] as List<dynamic>? ?? [];
+  return list.cast<Map<String, dynamic>>().map(SessionModel.fromJson).toList();
 });
 
 // ---------------------------------------------------------------------------
@@ -77,11 +80,14 @@ final unreadCountProvider = FutureProvider<int>((ref) async {
 
 // ---------------------------------------------------------------------------
 // Gamification  →  /api/gamification/*
+// Points response: { points: { total, weekly, monthly }, streak: { current, longest }, badges: [], recentActivity: [] }
+// Leaderboard response: { leaderboard: [ { rank, userId, name, points, streak }, ... ] }
 // ---------------------------------------------------------------------------
 
 final gamificationPointsProvider =
     FutureProvider<Map<String, dynamic>>((ref) async {
   ref.watch(authStateProvider);
+  // Returns full body: { points, streak, badges, recentActivity }
   return _client(ref).get<Map<String, dynamic>>(ApiEndpoints.gamificationPoints);
 });
 
@@ -94,39 +100,43 @@ final gamificationStreakProvider =
 final gamificationBadgesProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
   ref.watch(authStateProvider);
-  final data =
-      await _client(ref).get<List<dynamic>>(ApiEndpoints.gamificationBadges);
-  return data.cast<Map<String, dynamic>>();
+  final body = await _client(ref)
+      .get<Map<String, dynamic>>(ApiEndpoints.gamificationBadges);
+  final list = body['badges'] as List<dynamic>? ?? [];
+  return list.cast<Map<String, dynamic>>();
 });
 
 final leaderboardWeeklyProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
   ref.watch(authStateProvider);
-  final data = await _client(ref).get<List<dynamic>>(
+  final body = await _client(ref).get<Map<String, dynamic>>(
     ApiEndpoints.gamificationLeaderboard,
     queryParameters: {'period': 'weekly'},
   );
-  return data.cast<Map<String, dynamic>>();
+  final list = body['leaderboard'] as List<dynamic>? ?? [];
+  return list.cast<Map<String, dynamic>>();
 });
 
 final leaderboardMonthlyProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
   ref.watch(authStateProvider);
-  final data = await _client(ref).get<List<dynamic>>(
+  final body = await _client(ref).get<Map<String, dynamic>>(
     ApiEndpoints.gamificationLeaderboard,
     queryParameters: {'period': 'monthly'},
   );
-  return data.cast<Map<String, dynamic>>();
+  final list = body['leaderboard'] as List<dynamic>? ?? [];
+  return list.cast<Map<String, dynamic>>();
 });
 
 final leaderboardAllTimeProvider =
     FutureProvider<List<Map<String, dynamic>>>((ref) async {
   ref.watch(authStateProvider);
-  final data = await _client(ref).get<List<dynamic>>(
+  final body = await _client(ref).get<Map<String, dynamic>>(
     ApiEndpoints.gamificationLeaderboard,
     queryParameters: {'period': 'all_time'},
   );
-  return data.cast<Map<String, dynamic>>();
+  final list = body['leaderboard'] as List<dynamic>? ?? [];
+  return list.cast<Map<String, dynamic>>();
 });
 
 // ---------------------------------------------------------------------------

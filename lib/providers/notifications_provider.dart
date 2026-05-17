@@ -108,9 +108,11 @@ class NotificationsNotifier extends AsyncNotifier<List<AppNotification>> {
 
     try {
       final client = ref.read(apiClientProvider);
-      final data =
-          await client.get<List<dynamic>>(ApiEndpoints.notifications);
-      return data
+      // Response: { "notifications": [...] }
+      final body =
+          await client.get<Map<String, dynamic>>(ApiEndpoints.notifications);
+      final list = body['notifications'] as List<dynamic>? ?? [];
+      return list
           .cast<Map<String, dynamic>>()
           .map(AppNotification.fromJson)
           .toList();

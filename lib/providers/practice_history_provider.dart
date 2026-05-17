@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../screens/practice/session_setup_screen.dart';
-import 'student_providers.dart' show dashboardProvider;
+import 'student_providers.dart' show gamificationPointsProvider;
 
 // ---------------------------------------------------------------------------
 // Session model
@@ -194,17 +194,21 @@ int _computeStreak(List<PracticeSession> history) {
 final userStatsProvider = Provider<UserStats>((ref) {
   final history = ref.watch(practiceHistoryProvider);
 
-  // Pull real streak / points from /api/student/dashboard (same as Expo app).
+  // Pull real streak / points from /api/gamification/points.
+  // Response shape: { points: { total, weekly, monthly }, streak: { current, longest } }
   // Falls back to locally-computed values while loading or if offline.
-  final dashAsync = ref.watch(dashboardProvider);
-  final dashboard = dashAsync.valueOrNull;
+  final gamAsync = ref.watch(gamificationPointsProvider);
+  final gamData = gamAsync.valueOrNull;
+
+  final pointsMap = gamData?['points'] as Map<String, dynamic>?;
+  final streakMap = gamData?['streak'] as Map<String, dynamic>?;
 
   final totalPoints =
-      (dashboard?['weeklyPoints'] as int?) ??
+      (pointsMap?['total'] as int?) ??
       history.fold<int>(0, (sum, s) => sum + s.score);
 
   final streak =
-      (dashboard?['currentStreak'] as int?) ??
+      (streakMap?['current'] as int?) ??
       _computeStreak(history);
 
   return UserStats(
