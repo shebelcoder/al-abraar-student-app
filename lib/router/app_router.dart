@@ -39,6 +39,10 @@ class _RouterNotifier extends ChangeNotifier {
       authStateProvider,
       (_, __) => notifyListeners(),
     );
+    _ref.listen<bool>(
+      onboardingSeenProvider,
+      (_, __) => notifyListeners(),
+    );
   }
 
   final Ref _ref;

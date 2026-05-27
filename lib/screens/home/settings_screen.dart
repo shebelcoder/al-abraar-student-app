@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../providers/onboarding_provider.dart';
 import '../../services/onboarding_prefs.dart';
 import '../../theme/app_theme.dart';
 
@@ -188,6 +189,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: l.settings_replayIntro,
             onTap: () async {
               await OnboardingPrefs.clearSeen();
+              // Update in-memory provider so router redirect re-evaluates.
+              ref.read(onboardingSeenProvider.notifier).state = false;
               if (context.mounted) context.go('/onboarding');
             },
           ),

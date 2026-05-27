@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/onboarding_provider.dart';
 import '../../services/onboarding_prefs.dart';
 import '../../theme/app_theme.dart';
@@ -34,9 +35,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _finish(BuildContext context, String route) async {
     await OnboardingPrefs.markSeen();
+    // Update the in-memory provider so the router redirect re-evaluates immediately.
+    ref.read(onboardingSeenProvider.notifier).state = true;
     if (_selectedType != null) {
       await OnboardingPrefs.saveUserType(_selectedType!);
       ref.read(userTypeProvider.notifier).state = _selectedType;
+    }
+    if (route == '/home/dashboard') {
+      // "Browse first" — enter guest mode so the auth guard lets us through.
+      await ref.read(authStateProvider.notifier).loginAsGuest();
     }
     if (context.mounted) context.go(route);
   }
@@ -575,7 +582,7 @@ class _AuthPage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () => onChoice('/dashboard'),
+              onPressed: () => onChoice('/home/dashboard'),
               child: Text(
                 l.onboarding_browseFirst,
                 style: const TextStyle(
