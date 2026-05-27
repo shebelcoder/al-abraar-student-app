@@ -1,73 +1,124 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/student_providers.dart';
 import '../../theme/app_theme.dart';
 
-const _myRank = 4;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-class LeaderboardScreen extends StatefulWidget {
+const _palette = [
+  Color(0xFFF59E0B),
+  Color(0xFF6366F1),
+  Color(0xFF0EA5E9),
+  AppTheme.primaryGreen,
+  Color(0xFFF97316),
+  Color(0xFF8B5CF6),
+  Color(0xFF10B981),
+  Color(0xFF6B7280),
+];
+
+Color _colorFromName(String name) =>
+    _palette[name.hashCode.abs() % _palette.length];
+
+String _initialsFrom(String name) {
+  final parts = name.trim().split(RegExp(r'\s+'));
+  if (parts.length >= 2) {
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+  return name.substring(0, min(2, name.length)).toUpperCase();
+}
+
+class _Player {
+  final String name;
+  final int points;
+  final String initials;
+  final Color color;
+  final bool isMe;
+  final int rank;
+
+  const _Player({
+    required this.name,
+    required this.points,
+    required this.initials,
+    required this.color,
+    required this.isMe,
+    required this.rank,
+  });
+}
+
+List<_Player> _parsePlayers(
+    List<Map<String, dynamic>> data, String? myUserId) {
+  return data.asMap().entries.map((e) {
+    final j = e.value;
+    final name = j['name']?.toString() ??
+        j['studentName']?.toString() ??
+        j['userName']?.toString() ??
+        'Student';
+    final points = (j['points'] as num?)?.toInt() ??
+        (j['totalPoints'] as num?)?.toInt() ??
+        0;
+    final rank = (j['rank'] as num?)?.toInt() ?? (e.key + 1);
+    final userId = j['userId']?.toString() ??
+        j['id']?.toString() ??
+        j['studentId']?.toString() ??
+        '';
+    return _Player(
+      name: name,
+      points: points,
+      initials: _initialsFrom(name),
+      color: _colorFromName(name),
+      isMe: myUserId != null && userId.isNotEmpty && userId == myUserId,
+      rank: rank,
+    );
+  }).toList();
+}
+
+// ---------------------------------------------------------------------------
+// Screen
+// ---------------------------------------------------------------------------
+
+class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
 
   @override
-  State<LeaderboardScreen> createState() => _LeaderboardScreenState();
+  ConsumerState<LeaderboardScreen> createState() =>
+      _LeaderboardScreenState();
 }
 
-class _LeaderboardScreenState extends State<LeaderboardScreen> {
+class _LeaderboardScreenState
+    extends ConsumerState<LeaderboardScreen> {
   int _periodIndex = 0;
-
-  static const _data = [
-    // Weekly
-    [
-      _Player('Yusuf Al-Rashid', 680, 'YR', Color(0xFFF59E0B)),
-      _Player('Amina Karim', 615, 'AK', Color(0xFF6366F1)),
-      _Player('Ibrahim Syed', 590, 'IS', Color(0xFF0EA5E9)),
-      _Player('Abdullah Ahmad', 540, 'AA', AppTheme.primaryGreen),
-      _Player('Maryam Hassan', 510, 'MH', Color(0xFFF97316)),
-      _Player('Omar Farouq', 480, 'OF', Color(0xFF8B5CF6)),
-      _Player('Khadija Malik', 460, 'KM', Color(0xFF10B981)),
-      _Player('Bilal Hussain', 420, 'BH', Color(0xFF6B7280)),
-    ],
-    // Monthly
-    [
-      _Player('Amina Karim', 2840, 'AK', Color(0xFF6366F1)),
-      _Player('Yusuf Al-Rashid', 2710, 'YR', Color(0xFFF59E0B)),
-      _Player('Omar Farouq', 2500, 'OF', Color(0xFF8B5CF6)),
-      _Player('Abdullah Ahmad', 2380, 'AA', AppTheme.primaryGreen),
-      _Player('Ibrahim Syed', 2200, 'IS', Color(0xFF0EA5E9)),
-      _Player('Bilal Hussain', 2100, 'BH', Color(0xFF6B7280)),
-      _Player('Maryam Hassan', 1980, 'MH', Color(0xFFF97316)),
-      _Player('Khadija Malik', 1860, 'KM', Color(0xFF10B981)),
-    ],
-    // All Time
-    [
-      _Player('Ibrahim Syed', 12400, 'IS', Color(0xFF0EA5E9)),
-      _Player('Amina Karim', 11800, 'AK', Color(0xFF6366F1)),
-      _Player('Yusuf Al-Rashid', 10900, 'YR', Color(0xFFF59E0B)),
-      _Player('Abdullah Ahmad', 9600, 'AA', AppTheme.primaryGreen),
-      _Player('Khadija Malik', 8800, 'KM', Color(0xFF10B981)),
-      _Player('Omar Farouq', 8100, 'OF', Color(0xFF8B5CF6)),
-      _Player('Maryam Hassan', 7400, 'MH', Color(0xFFF97316)),
-      _Player('Bilal Hussain', 6900, 'BH', Color(0xFF6B7280)),
-    ],
-  ];
-
-  List<_Player> get _players => _data[_periodIndex];
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final currentUser = ref.watch(currentUserProvider);
+    final myId = currentUser?.id;
+
     final periods = [
       l.leaderboard_periodWeekly,
       l.leaderboard_periodMonthly,
       l.leaderboard_periodAllTime,
     ];
-    final top3 = _players.take(3).toList();
-    final rest = _players.skip(3).toList();
+
+    final asyncProviders = [
+      ref.watch(leaderboardWeeklyProvider),
+      ref.watch(leaderboardMonthlyProvider),
+      ref.watch(leaderboardAllTimeProvider),
+    ];
+
+    final currentAsync = asyncProviders[_periodIndex];
 
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(title: Text(l.leaderboard_appBarTitle)),
       body: Column(
         children: [
+          // Period selector
           Container(
             color: AppTheme.surfaceWhite,
             padding: const EdgeInsets.symmetric(
@@ -106,24 +157,30 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               }),
             ),
           ),
+          // Content
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _Podium(top3: top3, l: l),
-                const SizedBox(height: 20),
-                ...rest.asMap().entries.map((e) {
-                  final rank = e.key + 4;
-                  final isMe = rank == _myRank;
-                  return _RankRow(
-                    player: e.value,
-                    rank: rank,
-                    isMe: isMe,
-                    l: l,
-                  );
-                }),
-                const SizedBox(height: 80),
-              ],
+            child: currentAsync.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(
+                    color: AppTheme.primaryGreen),
+              ),
+              error: (_, __) => _EmptyLeaderboard(l: l),
+              data: (raw) {
+                if (raw.isEmpty) return _EmptyLeaderboard(l: l);
+                final players = _parsePlayers(raw, myId);
+                final top3 = players.take(3).toList();
+                final rest = players.skip(3).toList();
+                return ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    if (top3.length >= 3)
+                      _Podium(top3: top3, l: l),
+                    const SizedBox(height: 20),
+                    ...rest.map((p) => _RankRow(player: p, l: l)),
+                    const SizedBox(height: 80),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -133,6 +190,55 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 }
 
 // ---------------------------------------------------------------------------
+// Empty state
+// ---------------------------------------------------------------------------
+
+class _EmptyLeaderboard extends StatelessWidget {
+  final AppLocalizations l;
+  const _EmptyLeaderboard({required this.l});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryGreen.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.emoji_events_rounded,
+                size: 40, color: AppTheme.primaryGreen),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l.leaderboard_podiumTitle,
+            style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textDark),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'No rankings yet — start practising to earn points!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+                height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Podium + rank rows (unchanged UI, adapted to new _Player model)
+// ---------------------------------------------------------------------------
 
 class _Podium extends StatelessWidget {
   final List<_Player> top3;
@@ -141,7 +247,6 @@ class _Podium extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (top3.length < 3) return const SizedBox();
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -166,9 +271,15 @@ class _Podium extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Expanded(child: _PodiumSlot(player: top3[1], rank: 2, height: 72)),
-              Expanded(child: _PodiumSlot(player: top3[0], rank: 1, height: 92)),
-              Expanded(child: _PodiumSlot(player: top3[2], rank: 3, height: 56)),
+              Expanded(
+                  child: _PodiumSlot(
+                      player: top3[1], rank: 2, height: 72)),
+              Expanded(
+                  child: _PodiumSlot(
+                      player: top3[0], rank: 1, height: 92)),
+              Expanded(
+                  child: _PodiumSlot(
+                      player: top3[2], rank: 3, height: 56)),
             ],
           ),
         ],
@@ -188,7 +299,8 @@ class _PodiumSlot extends StatelessWidget {
     required this.height,
   });
 
-  String get _medal => rank == 1 ? '🥇' : rank == 2 ? '🥈' : '🥉';
+  String get _medal =>
+      rank == 1 ? '🥇' : rank == 2 ? '🥈' : '🥉';
 
   @override
   Widget build(BuildContext context) {
@@ -255,26 +367,19 @@ class _PodiumSlot extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-
 class _RankRow extends StatelessWidget {
   final _Player player;
-  final int rank;
-  final bool isMe;
   final AppLocalizations l;
 
-  const _RankRow({
-    required this.player,
-    required this.rank,
-    required this.isMe,
-    required this.l,
-  });
+  const _RankRow({required this.player, required this.l});
 
   @override
   Widget build(BuildContext context) {
+    final isMe = player.isMe;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isMe
             ? AppTheme.primaryGreen.withValues(alpha: 0.06)
@@ -297,7 +402,7 @@ class _RankRow extends StatelessWidget {
           SizedBox(
             width: 28,
             child: Text(
-              '#$rank',
+              '#${player.rank}',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -334,8 +439,11 @@ class _RankRow extends StatelessWidget {
                   : player.name,
               style: TextStyle(
                 fontSize: 14,
-                fontWeight: isMe ? FontWeight.w700 : FontWeight.w600,
-                color: isMe ? AppTheme.primaryGreen : AppTheme.textDark,
+                fontWeight:
+                    isMe ? FontWeight.w700 : FontWeight.w600,
+                color: isMe
+                    ? AppTheme.primaryGreen
+                    : AppTheme.textDark,
               ),
             ),
           ),
@@ -348,7 +456,9 @@ class _RankRow extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: isMe ? AppTheme.primaryGreen : AppTheme.textDark,
+                  color: isMe
+                      ? AppTheme.primaryGreen
+                      : AppTheme.textDark,
                 ),
               ),
             ],
@@ -357,14 +467,4 @@ class _RankRow extends StatelessWidget {
       ),
     );
   }
-}
-
-// ---------------------------------------------------------------------------
-
-class _Player {
-  final String name;
-  final int points;
-  final String initials;
-  final Color color;
-  const _Player(this.name, this.points, this.initials, this.color);
 }

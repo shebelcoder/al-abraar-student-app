@@ -2,8 +2,135 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/student_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/guest_lock_screen.dart';
+
+// ---------------------------------------------------------------------------
+// Parsing helpers
+// ---------------------------------------------------------------------------
+
+class _SubjectResult {
+  final String name;
+  final int score;
+  final String grade;
+  final String teacher;
+  final String comment;
+  const _SubjectResult(
+      this.name, this.score, this.grade, this.teacher, this.comment);
+}
+
+class _TermData {
+  final String label;
+  final String overallGrade;
+  final int overallScore;
+  final int attendanceRate;
+  final List<_SubjectResult> subjects;
+  final String comment;
+  final String teacher;
+  const _TermData({
+    required this.label,
+    required this.overallGrade,
+    required this.overallScore,
+    required this.attendanceRate,
+    required this.subjects,
+    required this.comment,
+    required this.teacher,
+  });
+}
+
+_SubjectResult? _parseSubject(dynamic raw) {
+  if (raw is! Map) return null;
+  final j = raw as Map<String, dynamic>;
+  return _SubjectResult(
+    j['name']?.toString() ??
+        j['subject']?.toString() ??
+        j['subjectName']?.toString() ??
+        'Unknown',
+    (j['score'] as num?)?.toInt() ??
+        (j['percentage'] as num?)?.toInt() ??
+        0,
+    j['grade']?.toString() ?? '-',
+    j['teacher']?.toString() ??
+        j['teacherName']?.toString() ??
+        '',
+    j['comment']?.toString() ??
+        j['feedback']?.toString() ??
+        j['teacherComment']?.toString() ??
+        '',
+  );
+}
+
+List<_TermData> _parseTerms(
+    Map<String, dynamic> body, List<String> termLabels) {
+  // Try { terms: [...] } or { reportCard: { terms: [...] } } or root list
+  final rawTerms = (body['terms'] as List?) ??
+      ((body['reportCard'] as Map?)?['terms'] as List?) ??
+      [];
+
+  if (rawTerms.isNotEmpty) {
+    return rawTerms.asMap().entries.map((e) {
+      final j = e.value as Map<String, dynamic>;
+      final subjectsRaw = j['subjects'] as List? ?? [];
+      return _TermData(
+        label: termLabels[e.key.clamp(0, termLabels.length - 1)],
+        overallGrade: j['grade']?.toString() ??
+            j['overallGrade']?.toString() ??
+            '-',
+        overallScore: (j['score'] as num?)?.toInt() ??
+            (j['overallScore'] as num?)?.toInt() ??
+            0,
+        attendanceRate: (j['attendance'] as num?)?.toInt() ??
+            (j['attendanceRate'] as num?)?.toInt() ??
+            0,
+        subjects: subjectsRaw
+            .map(_parseSubject)
+            .whereType<_SubjectResult>()
+            .toList(),
+        comment: j['comment']?.toString() ??
+            j['teacherComment']?.toString() ??
+            '',
+        teacher: j['teacher']?.toString() ??
+            j['teacherName']?.toString() ??
+            '',
+      );
+    }).toList();
+  }
+
+  // Flat body (single term)
+  final subjectsRaw = body['subjects'] as List? ?? [];
+  if (body.isNotEmpty) {
+    return [
+      _TermData(
+        label: termLabels[0],
+        overallGrade:
+            body['grade']?.toString() ?? body['overallGrade']?.toString() ?? '-',
+        overallScore: (body['score'] as num?)?.toInt() ??
+            (body['overallScore'] as num?)?.toInt() ??
+            0,
+        attendanceRate: (body['attendance'] as num?)?.toInt() ??
+            (body['attendanceRate'] as num?)?.toInt() ??
+            0,
+        subjects: subjectsRaw
+            .map(_parseSubject)
+            .whereType<_SubjectResult>()
+            .toList(),
+        comment: body['comment']?.toString() ??
+            body['teacherComment']?.toString() ??
+            '',
+        teacher: body['teacher']?.toString() ??
+            body['teacherName']?.toString() ??
+            '',
+      ),
+    ];
+  }
+
+  return [];
+}
+
+// ---------------------------------------------------------------------------
+// Screen
+// ---------------------------------------------------------------------------
 
 class ReportCardScreen extends ConsumerStatefulWidget {
   const ReportCardScreen({super.key});
@@ -16,82 +143,20 @@ class ReportCardScreen extends ConsumerStatefulWidget {
 class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
   int _termIndex = 0;
 
-  static const _termData = [
-    _TermData(
-      overallGrade: 'B+',
-      overallScore: 83,
-      attendanceRate: 92,
-      subjects: [
-        _SubjectResult('Quran Recitation', 88, 'A-', 'Sheikh Ahmed',
-            'Excellent tajweed. Needs to work on longer surahs.'),
-        _SubjectResult('Tajweed Rules', 76, 'C+', 'Sheikh Ahmed',
-            'Good understanding of basic rules. Makharij needs more practice.'),
-        _SubjectResult('Arabic Language', 91, 'A', 'Ustadh Ali',
-            'Outstanding vocabulary. Grammar is a strong point.'),
-        _SubjectResult('Quran Memorisation', 82, 'B', 'Ustadha Fatima',
-            'Consistent progress. Al-Fatiha and Juz Amma surahs complete.'),
-        _SubjectResult('Islamic Studies', 69, 'C', 'Ustadh Omar',
-            'Needs to engage more in class discussions. Homework completion should improve.'),
-      ],
-      comment:
-          'Abdullah has shown great dedication this term. His recitation has improved significantly and he maintains a positive attitude. Keep up the excellent work!',
-      teacher: 'Sheikh Ahmed',
-    ),
-    _TermData(
-      overallGrade: 'A-',
-      overallScore: 87,
-      attendanceRate: 95,
-      subjects: [
-        _SubjectResult('Quran Recitation', 92, 'A', 'Sheikh Ahmed',
-            'Remarkable improvement. Surah Yaseen memorised flawlessly.'),
-        _SubjectResult('Tajweed Rules', 84, 'B', 'Sheikh Ahmed',
-            'Makharij has improved greatly. Ghunna rules are now solid.'),
-        _SubjectResult('Arabic Language', 89, 'B+', 'Ustadh Ali',
-            'Strong vocabulary. Reading fluency has improved.'),
-        _SubjectResult('Quran Memorisation', 88, 'B+', 'Ustadha Fatima',
-            'Memorising at a faster pace. Consistent revision is appreciated.'),
-        _SubjectResult('Islamic Studies', 78, 'C+', 'Ustadh Omar',
-            'Better participation this term. Written work is improving.'),
-      ],
-      comment:
-          'A wonderful term for Abdullah. His commitment to Quran memorisation is commendable and his grades reflect his hard work. Looking forward to seeing continued progress.',
-      teacher: 'Sheikh Ahmed',
-    ),
-    _TermData(
-      overallGrade: 'A',
-      overallScore: 91,
-      attendanceRate: 98,
-      subjects: [
-        _SubjectResult('Quran Recitation', 95, 'A', 'Sheikh Ahmed',
-            'Near-perfect recitation. A role model for the class.'),
-        _SubjectResult('Tajweed Rules', 89, 'B+', 'Sheikh Ahmed',
-            'All rules mastered to a high standard.'),
-        _SubjectResult('Arabic Language', 94, 'A', 'Ustadh Ali',
-            'Exceptional performance. Writing skills are outstanding.'),
-        _SubjectResult('Quran Memorisation', 92, 'A', 'Ustadha Fatima',
-            'Juz Amma complete. Has started on longer surahs.'),
-        _SubjectResult('Islamic Studies', 84, 'B', 'Ustadh Omar',
-            'Significant improvement. Thoughtful contributions in class.'),
-      ],
-      comment:
-          'An exceptional term. Abdullah has truly excelled across all subjects. His dedication to his studies and love for the Quran is an inspiration to his peers. May Allah bless his journey.',
-      teacher: 'Sheikh Ahmed',
-    ),
-  ];
-
-  _TermData get _current => _termData[_termIndex];
-
-  Color get _gradeColor {
-    final s = _current.overallScore;
-    if (s >= 85) return AppTheme.successGreen;
-    if (s >= 70) return AppTheme.goldAccent;
+  Color _gradeColor(int score) {
+    if (score >= 85) return AppTheme.successGreen;
+    if (score >= 70) return AppTheme.goldAccent;
     return AppTheme.errorRed;
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final terms = [l.reportCard_term1, l.reportCard_term2, l.reportCard_term3];
+    final termLabels = [
+      l.reportCard_term1,
+      l.reportCard_term2,
+      l.reportCard_term3,
+    ];
 
     if (ref.watch(isGuestProvider)) {
       return Scaffold(
@@ -104,6 +169,9 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
         ),
       );
     }
+
+    final reportAsync = ref.watch(reportCardProvider);
+
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
@@ -124,10 +192,74 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: reportAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(
+              color: AppTheme.primaryGreen),
+        ),
+        error: (_, __) => _buildEmpty(l),
+        data: (body) {
+          final terms = _parseTerms(body, termLabels);
+          if (terms.isEmpty) return _buildEmpty(l);
+          // Clamp index if fewer terms returned than expected.
+          final idx = _termIndex.clamp(0, terms.length - 1);
+          return _buildContent(l, terms, idx, termLabels);
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmpty(AppLocalizations l) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Term selector
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryGreen.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.description_rounded,
+                size: 40, color: AppTheme.primaryGreen),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l.reportCard_appBarTitle,
+            style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textDark),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Your report card will appear here after the term ends.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+                height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(
+    AppLocalizations l,
+    List<_TermData> terms,
+    int idx,
+    List<String> termLabels,
+  ) {
+    final current = terms[idx];
+    final gradeColor = _gradeColor(current.overallScore);
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Term selector
+        if (terms.length > 1)
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
@@ -149,7 +281,8 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
                     onTap: () => setState(() => _termIndex = i),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(
                         color: sel
                             ? AppTheme.primaryGreen
@@ -157,7 +290,7 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
                         borderRadius: BorderRadius.circular(9),
                       ),
                       child: Text(
-                        terms[i],
+                        terms[i].label,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
@@ -173,83 +306,86 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
               }),
             ),
           ),
-          const SizedBox(height: 16),
+        const SizedBox(height: 16),
 
-          // Overall grade card
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_gradeColor, _gradeColor.withValues(alpha: 0.7)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+        // Overall grade card
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                gradeColor,
+                gradeColor.withValues(alpha: 0.7)
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: gradeColor.withValues(alpha: 0.3),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
               ),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: _gradeColor.withValues(alpha: 0.3),
-                  blurRadius: 14,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l.reportCard_overallGrade,
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 13)),
-                    const SizedBox(height: 4),
-                    Text(
-                      _current.overallGrade,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 52,
-                          fontWeight: FontWeight.w900,
-                          height: 1),
-                    ),
-                    Text('${_current.overallScore}${l.reportCard_averageSuffix}',
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 13)),
-                  ],
-                ),
-                const Spacer(),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _CardStat(
-                        label: l.reportCard_statAttendance,
-                        value: '${_current.attendanceRate}%'),
-                    const SizedBox(height: 10),
-                    _CardStat(
-                        label: l.reportCard_statSubjects,
-                        value:
-                            '${_current.subjects.length}'),
-                    const SizedBox(height: 10),
-                    _CardStat(
-                        label: l.reportCard_statTerm,
-                        value: terms[_termIndex]),
-                  ],
-                ),
-              ],
-            ),
+            ],
           ),
-          const SizedBox(height: 20),
+          child: Row(
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l.reportCard_overallGrade,
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Text(
+                    current.overallGrade,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 52,
+                        fontWeight: FontWeight.w900,
+                        height: 1),
+                  ),
+                  Text(
+                      '${current.overallScore}${l.reportCard_averageSuffix}',
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 13)),
+                ],
+              ),
+              const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _CardStat(
+                      label: l.reportCard_statAttendance,
+                      value: '${current.attendanceRate}%'),
+                  const SizedBox(height: 10),
+                  _CardStat(
+                      label: l.reportCard_statSubjects,
+                      value: '${current.subjects.length}'),
+                  const SizedBox(height: 10),
+                  _CardStat(
+                      label: l.reportCard_statTerm,
+                      value: current.label),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
 
-          // Subject results
-          Text(l.reportCard_subjectResults,
-              style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textDark)),
-          const SizedBox(height: 12),
-          ..._current.subjects
-              .map((s) => _SubjectRow(subject: s)),
-          const SizedBox(height: 20),
+        // Subject results
+        Text(l.reportCard_subjectResults,
+            style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textDark)),
+        const SizedBox(height: 12),
+        ...current.subjects.map((s) => _SubjectRow(subject: s)),
+        const SizedBox(height: 20),
 
-          // Teacher comment
+        // Teacher comment
+        if (current.comment.isNotEmpty)
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -290,17 +426,18 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: AppTheme.textDark)),
-                        Text(_current.teacher,
-                            style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.textSecondary)),
+                        if (current.teacher.isNotEmpty)
+                          Text(current.teacher,
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.textSecondary)),
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  _current.comment,
+                  current.comment,
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppTheme.textSecondary,
@@ -311,13 +448,14 @@ class _ReportCardScreenState extends ConsumerState<ReportCardScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 80),
-        ],
-      ),
+        const SizedBox(height: 80),
+      ],
     );
   }
 }
 
+// ---------------------------------------------------------------------------
+// Widgets (unchanged UI)
 // ---------------------------------------------------------------------------
 
 class _SubjectRow extends StatelessWidget {
@@ -361,10 +499,11 @@ class _SubjectRow extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: AppTheme.textDark)),
                   const SizedBox(height: 2),
-                  Text(subject.teacher,
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary)),
+                  if (subject.teacher.isNotEmpty)
+                    Text(subject.teacher,
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary)),
                 ],
               ),
             ),
@@ -420,9 +559,11 @@ class _SubjectRow extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
-            Text(subject.teacher,
-                style: const TextStyle(
-                    color: AppTheme.textSecondary, fontSize: 13)),
+            if (subject.teacher.isNotEmpty)
+              Text(subject.teacher,
+                  style: const TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 13)),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -434,18 +575,20 @@ class _SubjectRow extends StatelessWidget {
                     label: 'Grade', value: subject.grade),
               ],
             ),
-            const SizedBox(height: 16),
-            const Text("Teacher's Feedback",
-                style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textDark)),
-            const SizedBox(height: 8),
-            Text(subject.comment,
-                style: const TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.textSecondary,
-                    height: 1.5)),
+            if (subject.comment.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text("Teacher's Feedback",
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textDark)),
+              const SizedBox(height: 8),
+              Text(subject.comment,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                      height: 1.5)),
+            ],
           ],
         ),
       ),
@@ -504,33 +647,4 @@ class _CardStat extends StatelessWidget {
       ],
     );
   }
-}
-
-// ---------------------------------------------------------------------------
-
-class _TermData {
-  final String overallGrade;
-  final int overallScore;
-  final int attendanceRate;
-  final List<_SubjectResult> subjects;
-  final String comment;
-  final String teacher;
-  const _TermData({
-    required this.overallGrade,
-    required this.overallScore,
-    required this.attendanceRate,
-    required this.subjects,
-    required this.comment,
-    required this.teacher,
-  });
-}
-
-class _SubjectResult {
-  final String name;
-  final int score;
-  final String grade;
-  final String teacher;
-  final String comment;
-  const _SubjectResult(
-      this.name, this.score, this.grade, this.teacher, this.comment);
 }

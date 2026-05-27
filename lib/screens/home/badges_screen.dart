@@ -1,37 +1,200 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/student_providers.dart';
 import '../../theme/app_theme.dart';
 
-class BadgesScreen extends StatelessWidget {
+// ---------------------------------------------------------------------------
+// Local badge catalog (emoji, color, localized name/description)
+// earned status is populated from the gamification API
+// ---------------------------------------------------------------------------
+
+
+
+class _Badge {
+  final String id;
+  final String name;
+  final String description;
+  final String emoji;
+  final Color color;
+  final bool earned;
+
+  const _Badge({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.emoji,
+    required this.color,
+    required this.earned,
+  });
+}
+
+/// Build the full badge list using localized strings for name/description,
+/// and [earnedIds] from the API to mark which ones are unlocked.
+List<_Badge> _buildBadges(AppLocalizations l, Set<String> earnedIds) {
+  bool isEarned(String id) {
+    final lId = id.toLowerCase();
+    return earnedIds.any((e) {
+      final le = e.toLowerCase();
+      return le == lId ||
+          le.replaceAll(' ', '-') == lId ||
+          le.replaceAll('-', ' ') == lId.replaceAll('-', ' ');
+    });
+  }
+
+  return [
+    _Badge(
+        id: 'first-step',
+        name: l.badges_firstStepName,
+        description: l.badges_firstStepDesc,
+        emoji: '🌟',
+        color: const Color(0xFFF59E0B),
+        earned: isEarned('first-step')),
+    _Badge(
+        id: 'streak',
+        name: l.badges_streakName,
+        description: l.badges_streakDesc,
+        emoji: '🔥',
+        color: const Color(0xFFEF4444),
+        earned: isEarned('streak')),
+    _Badge(
+        id: 'al-fatiha',
+        name: l.badges_alfatihaName,
+        description: l.badges_alfatihaDesc,
+        emoji: '📖',
+        color: AppTheme.primaryGreen,
+        earned: isEarned('al-fatiha')),
+    _Badge(
+        id: 'tajweed-star',
+        name: l.badges_tajweedStarName,
+        description: l.badges_tajweedStarDesc,
+        emoji: '✨',
+        color: const Color(0xFF8B5CF6),
+        earned: isEarned('tajweed-star')),
+    _Badge(
+        id: 'early-bird',
+        name: l.badges_earlyBirdName,
+        description: l.badges_earlyBirdDesc,
+        emoji: '🌅',
+        color: const Color(0xFF0EA5E9),
+        earned: isEarned('early-bird')),
+    _Badge(
+        id: 'consistent',
+        name: l.badges_consistentName,
+        description: l.badges_consistentDesc,
+        emoji: '📅',
+        color: AppTheme.successGreen,
+        earned: isEarned('consistent')),
+    _Badge(
+        id: 'quick-learner',
+        name: l.badges_quickLearnerName,
+        description: l.badges_quickLearnerDesc,
+        emoji: '⚡',
+        color: const Color(0xFFF97316),
+        earned: isEarned('quick-learner')),
+    _Badge(
+        id: 'team-player',
+        name: l.badges_teamPlayerName,
+        description: l.badges_teamPlayerDesc,
+        emoji: '🤝',
+        color: const Color(0xFF6366F1),
+        earned: isEarned('team-player')),
+    _Badge(
+        id: 'streak-30',
+        name: l.badges_streak30Name,
+        description: l.badges_streak30Desc,
+        emoji: '🏆',
+        color: const Color(0xFF6B7280),
+        earned: isEarned('streak-30')),
+    _Badge(
+        id: 'juz-amma',
+        name: l.badges_juzAmmaName,
+        description: l.badges_juzAmmaDesc,
+        emoji: '📚',
+        color: const Color(0xFF6B7280),
+        earned: isEarned('juz-amma')),
+    _Badge(
+        id: 'hafiz-path',
+        name: l.badges_hafizPathName,
+        description: l.badges_hafizPathDesc,
+        emoji: '🌙',
+        color: const Color(0xFF6B7280),
+        earned: isEarned('hafiz-path')),
+    _Badge(
+        id: 'perfect-score',
+        name: l.badges_perfectScoreName,
+        description: l.badges_perfectScoreDesc,
+        emoji: '💯',
+        color: const Color(0xFF6B7280),
+        earned: isEarned('perfect-score')),
+    _Badge(
+        id: 'night-owl',
+        name: l.badges_nightOwlName,
+        description: l.badges_nightOwlDesc,
+        emoji: '🦉',
+        color: const Color(0xFF6B7280),
+        earned: isEarned('night-owl')),
+    _Badge(
+        id: 'scholar',
+        name: l.badges_scholarName,
+        description: l.badges_scholarDesc,
+        emoji: '🎓',
+        color: const Color(0xFF6B7280),
+        earned: isEarned('scholar')),
+  ];
+}
+
+/// Extract earned badge IDs/names from the API response list.
+Set<String> _earnedSetFromApi(List<Map<String, dynamic>> apiData) {
+  final result = <String>{};
+  for (final b in apiData) {
+    final earnedFlag = b['earned'] as bool?;
+    final earnedAt = b['earnedAt'];
+    final isEarned = earnedFlag == true || earnedAt != null;
+    if (!isEarned) continue;
+
+    final id = b['id']?.toString() ??
+        b['badgeId']?.toString() ??
+        b['slug']?.toString() ??
+        '';
+    final name = b['name']?.toString() ?? '';
+    if (id.isNotEmpty) result.add(id);
+    if (name.isNotEmpty) result.add(name);
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Screen
+// ---------------------------------------------------------------------------
+
+class BadgesScreen extends ConsumerWidget {
   const BadgesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final badgesAsync = ref.watch(gamificationBadgesProvider);
 
-    final badges = [
-      // Earned
-      _Badge(l.badges_firstStepName, l.badges_firstStepDesc, '🌟', const Color(0xFFF59E0B), true),
-      _Badge(l.badges_streakName, l.badges_streakDesc, '🔥', const Color(0xFFEF4444), true),
-      _Badge(l.badges_alfatihaName, l.badges_alfatihaDesc, '📖', AppTheme.primaryGreen, true),
-      _Badge(l.badges_tajweedStarName, l.badges_tajweedStarDesc, '✨', const Color(0xFF8B5CF6), true),
-      _Badge(l.badges_earlyBirdName, l.badges_earlyBirdDesc, '🌅', const Color(0xFF0EA5E9), true),
-      _Badge(l.badges_consistentName, l.badges_consistentDesc, '📅', AppTheme.successGreen, true),
-      _Badge(l.badges_quickLearnerName, l.badges_quickLearnerDesc, '⚡', const Color(0xFFF97316), true),
-      _Badge(l.badges_teamPlayerName, l.badges_teamPlayerDesc, '🤝', const Color(0xFF6366F1), true),
-      // Locked
-      _Badge(l.badges_streak30Name, l.badges_streak30Desc, '🏆', const Color(0xFF6B7280), false),
-      _Badge(l.badges_juzAmmaName, l.badges_juzAmmaDesc, '📚', const Color(0xFF6B7280), false),
-      _Badge(l.badges_hafizPathName, l.badges_hafizPathDesc, '🌙', const Color(0xFF6B7280), false),
-      _Badge(l.badges_perfectScoreName, l.badges_perfectScoreDesc, '💯', const Color(0xFF6B7280), false),
-      _Badge(l.badges_nightOwlName, l.badges_nightOwlDesc, '🦉', const Color(0xFF6B7280), false),
-      _Badge(l.badges_scholarName, l.badges_scholarDesc, '🎓', const Color(0xFF6B7280), false),
-    ];
+    return badgesAsync.when(
+      loading: () => _buildScaffold(
+          context, l, _buildBadges(l, {})),
+      error: (_, __) => _buildScaffold(
+          context, l, _buildBadges(l, {})),
+      data: (apiData) {
+        final earnedIds = _earnedSetFromApi(apiData);
+        return _buildScaffold(
+            context, l, _buildBadges(l, earnedIds));
+      },
+    );
+  }
 
-    final earnedCount = badges.where((b) => b.earned).length;
+  Scaffold _buildScaffold(
+      BuildContext context, AppLocalizations l, List<_Badge> badges) {
     final earned = badges.where((b) => b.earned).toList();
     final locked = badges.where((b) => !b.earned).toList();
-    final lockedCount = badges.length - earnedCount;
+    final earnedCount = earned.length;
+    final lockedCount = locked.length;
 
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
@@ -39,6 +202,7 @@ class BadgesScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Header banner
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -93,7 +257,8 @@ class BadgesScreen extends StatelessWidget {
               childAspectRatio: 0.85,
             ),
             itemCount: earned.length,
-            itemBuilder: (_, i) => _BadgeCard(badge: earned[i], l: l),
+            itemBuilder: (_, i) =>
+                _BadgeCard(badge: earned[i], l: l),
           ),
           const SizedBox(height: 24),
           _SectionHeader(
@@ -111,7 +276,8 @@ class BadgesScreen extends StatelessWidget {
               childAspectRatio: 0.85,
             ),
             itemCount: locked.length,
-            itemBuilder: (_, i) => _BadgeCard(badge: locked[i], l: l),
+            itemBuilder: (_, i) =>
+                _BadgeCard(badge: locked[i], l: l),
           ),
           const SizedBox(height: 80),
         ],
@@ -119,6 +285,10 @@ class BadgesScreen extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Widgets (unchanged UI)
+// ---------------------------------------------------------------------------
 
 class _SectionHeader extends StatelessWidget {
   final String title;
@@ -284,7 +454,9 @@ class _BadgeCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                badge.earned ? l.badges_statusEarned : l.badges_statusLocked,
+                badge.earned
+                    ? l.badges_statusEarned
+                    : l.badges_statusLocked,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -299,14 +471,4 @@ class _BadgeCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Badge {
-  final String name;
-  final String description;
-  final String emoji;
-  final Color color;
-  final bool earned;
-  const _Badge(
-      this.name, this.description, this.emoji, this.color, this.earned);
 }

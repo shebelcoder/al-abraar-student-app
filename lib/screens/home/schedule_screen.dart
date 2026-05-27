@@ -1,32 +1,93 @@
+import 'package:al_abraar_core/al_abraar_core.dart' show SessionModel;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/student_providers.dart';
 import '../../theme/app_theme.dart';
 
-class ScheduleScreen extends StatefulWidget {
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+String _formatTime(DateTime dt) {
+  final h = dt.hour;
+  final m = dt.minute.toString().padLeft(2, '0');
+  final period = h >= 12 ? 'PM' : 'AM';
+  final hour = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+  return '$hour:$m $period';
+}
+
+String _typeLabel(String type) {
+  switch (type) {
+    case 'ONE_ON_ONE':
+      return 'One-on-One Session';
+    case 'GROUP':
+      return 'Group Session';
+    case 'BROADCAST':
+      return 'Live Broadcast';
+    default:
+      return 'Session';
+  }
+}
+
+/// Convert a [SessionModel] → display [_Session].
+_Session? _toSession(SessionModel s) {
+  final dt = DateTime.tryParse(s.scheduledAt)?.toLocal();
+  if (dt == null) return null;
+  return _Session(
+    time: _formatTime(dt),
+    subject: s.title ?? _typeLabel(s.type),
+    teacher: s.teacherName ?? 'TBA',
+    duration: '${s.duration} min',
+    isCompleted: s.status == 'COMPLETED',
+    weekday: dt.weekday - 1, // 0=Mon … 6=Sun
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Screen
+// ---------------------------------------------------------------------------
+
+class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
 
   @override
-  State<ScheduleScreen> createState() => _ScheduleScreenState();
+  ConsumerState<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
-class _ScheduleScreenState extends State<ScheduleScreen> {
+class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   int _selectedDay = DateTime.now().weekday - 1; // 0 = Mon
 
   List<String> _days(AppLocalizations l) => [
-    l.schedule_mon, l.schedule_tue, l.schedule_wed,
-    l.schedule_thu, l.schedule_fri, l.schedule_sat, l.schedule_sun,
-  ];
+        l.schedule_mon,
+        l.schedule_tue,
+        l.schedule_wed,
+        l.schedule_thu,
+        l.schedule_fri,
+        l.schedule_sat,
+        l.schedule_sun,
+      ];
 
-  void _showRequestSheet(BuildContext context, AppLocalizations l) {
+  void _showRequestSheet(BuildContext context, AppLocalizations l,
+      List<SessionModel> all) {
     final subjectCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
     String? selectedTeacher;
-    const teachers = [
-      'Sheikh Ahmed',
-      'Ustadha Fatima',
-      'Ustadh Ali',
-      'Ustadh Omar',
-    ];
+
+    // Build teacher list from real sessions; fall back to defaults.
+    final teachers = all
+        .map((s) => s.teacherName)
+        .whereType<String>()
+        .toSet()
+        .toList();
+    if (teachers.isEmpty) {
+      teachers.addAll([
+        'Sheikh Ahmed',
+        'Ustadha Fatima',
+        'Ustadh Ali',
+        'Ustadh Omar',
+      ]);
+    }
 
     showModalBottomSheet(
       context: context,
@@ -63,7 +124,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               const SizedBox(height: 20),
               DropdownButtonFormField<String>(
                 initialValue: selectedTeacher,
-                decoration: InputDecoration(labelText: l.schedule_requestTeacherLabel),
+                decoration: InputDecoration(
+                    labelText: l.schedule_requestTeacherLabel),
                 items: teachers
                     .map((t) =>
                         DropdownMenuItem(value: t, child: Text(t)))
@@ -111,31 +173,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
-  static const _schedule = {
-    0: [
-      _Session(time: '9:00 AM',  subject: 'Quran Recitation',   teacher: 'Sheikh Ahmed',   duration: '45 min', isCompleted: false),
-      _Session(time: '4:00 PM',  subject: 'Arabic Language',    teacher: 'Ustadh Ali',     duration: '30 min', isCompleted: false),
-    ],
-    1: [
-      _Session(time: '10:00 AM', subject: 'Tajweed Rules',      teacher: 'Sheikh Ahmed',   duration: '60 min', isCompleted: false),
-    ],
-    2: [
-      _Session(time: '9:00 AM',  subject: 'Quran Memorisation', teacher: 'Ustadha Fatima', duration: '45 min', isCompleted: true),
-      _Session(time: '3:00 PM',  subject: 'Islamic Studies',    teacher: 'Ustadh Omar',    duration: '30 min', isCompleted: false),
-    ],
-    3: [
-      _Session(time: '4:30 PM',  subject: 'Quran Recitation',   teacher: 'Sheikh Ahmed',   duration: '45 min', isCompleted: false),
-    ],
-    4: [
-      _Session(time: '11:00 AM', subject: 'Arabic Vocabulary',  teacher: 'Ustadh Ali',     duration: '30 min', isCompleted: false),
-    ],
-  };
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final days = _days(l);
-    final sessions = _schedule[_selectedDay] ?? [];
+
+    // Combine upcoming + past sessions.
+    final upcomingAsync = ref.watch(upcomingSessionsProvider);
+    final pastAsync = ref.watch(pastSessionsProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
@@ -143,14 +188,28 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         title: Text(l.schedule_appBarTitle),
         automaticallyImplyLeading: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add_rounded),
-            onPressed: () => _showRequestSheet(context, l),
+          // Pass an empty list initially; will be refreshed when data loads.
+          upcomingAsync.when(
+            data: (all) => IconButton(
+              icon: const Icon(Icons.add_rounded),
+              onPressed: () => _showRequestSheet(context, l, all),
+            ),
+            loading: () => IconButton(
+              icon: const Icon(Icons.add_rounded),
+              onPressed: () =>
+                  _showRequestSheet(context, l, const []),
+            ),
+            error: (_, __) => IconButton(
+              icon: const Icon(Icons.add_rounded),
+              onPressed: () =>
+                  _showRequestSheet(context, l, const []),
+            ),
           ),
         ],
       ),
       body: Column(
         children: [
+          // Day picker
           Container(
             color: AppTheme.surfaceWhite,
             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -165,7 +224,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         setState(() => _selectedDay = index),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      margin:
+                          const EdgeInsets.symmetric(horizontal: 4),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 18, vertical: 8),
                       decoration: BoxDecoration(
@@ -195,22 +255,55 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               ),
             ),
           ),
+          // Session list
           Expanded(
-            child: sessions.isEmpty
-                ? _EmptySchedule(l: l)
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: sessions.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) =>
-                        _SessionCard(session: sessions[i], l: l),
-                  ),
+            child: _buildSessionList(
+                context, l, upcomingAsync, pastAsync),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildSessionList(
+    BuildContext context,
+    AppLocalizations l,
+    AsyncValue<List<SessionModel>> upcomingAsync,
+    AsyncValue<List<SessionModel>> pastAsync,
+  ) {
+    if (upcomingAsync.isLoading && pastAsync.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryGreen),
+      );
+    }
+
+    final upcoming = upcomingAsync.valueOrNull ?? [];
+    final past = pastAsync.valueOrNull ?? [];
+    final all = [...upcoming, ...past];
+
+    // Filter by the selected weekday.
+    final sessions = all
+        .map(_toSession)
+        .whereType<_Session>()
+        .where((s) => s.weekday == _selectedDay)
+        .toList()
+      ..sort((a, b) => a.time.compareTo(b.time));
+
+    if (sessions.isEmpty) {
+      return _EmptySchedule(l: l);
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: sessions.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (_, i) => _SessionCard(session: sessions[i], l: l),
+    );
+  }
 }
+
+// ---------------------------------------------------------------------------
+// Session card + helpers (unchanged UI)
+// ---------------------------------------------------------------------------
 
 class _SessionCard extends StatelessWidget {
   final _Session session;
@@ -274,8 +367,9 @@ class _SessionCard extends StatelessWidget {
                     color: session.isCompleted
                         ? AppTheme.textSecondary
                         : AppTheme.textDark,
-                    decoration:
-                        session.isCompleted ? TextDecoration.lineThrough : null,
+                    decoration: session.isCompleted
+                        ? TextDecoration.lineThrough
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -287,7 +381,8 @@ class _SessionCard extends StatelessWidget {
                     Text(
                       session.teacher,
                       style: const TextStyle(
-                          fontSize: 12, color: AppTheme.textSecondary),
+                          fontSize: 12,
+                          color: AppTheme.textSecondary),
                     ),
                     const SizedBox(width: 10),
                     const Icon(Icons.timer_outlined,
@@ -296,7 +391,8 @@ class _SessionCard extends StatelessWidget {
                     Text(
                       session.duration,
                       style: const TextStyle(
-                          fontSize: 12, color: AppTheme.textSecondary),
+                          fontSize: 12,
+                          color: AppTheme.textSecondary),
                     ),
                   ],
                 ),
@@ -331,8 +427,8 @@ class _SessionAction extends StatelessWidget {
           backgroundColor: AppTheme.primaryGreen,
           foregroundColor: Colors.white,
           minimumSize: Size.zero,
-          padding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 8),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10)),
           textStyle: const TextStyle(
@@ -364,7 +460,8 @@ class _JoinDialogState extends State<_JoinDialog> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.l.schedule_demoSnackbar(widget.session.subject)),
+          content: Text(
+              widget.l.schedule_demoSnackbar(widget.session.subject)),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppTheme.primaryGreen,
           shape: RoundedRectangleBorder(
@@ -500,19 +597,23 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isCompleted ? AppTheme.textSecondary : AppTheme.primaryGreen;
+    final color =
+        isCompleted ? AppTheme.textSecondary : AppTheme.primaryGreen;
     final bg = isCompleted
         ? const Color(0xFFF3F4F6)
         : AppTheme.primaryGreen.withValues(alpha: 0.1);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        isCompleted ? l.schedule_statusCompleted : l.schedule_statusUpcoming,
+        isCompleted
+            ? l.schedule_statusCompleted
+            : l.schedule_statusUpcoming,
         style: TextStyle(
           color: color,
           fontSize: 11,
@@ -571,17 +672,23 @@ class _EmptySchedule extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Local display model
+// ---------------------------------------------------------------------------
+
 class _Session {
   final String time;
   final String subject;
   final String teacher;
   final String duration;
   final bool isCompleted;
+  final int weekday; // 0=Mon … 6=Sun
   const _Session({
     required this.time,
     required this.subject,
     required this.teacher,
     required this.duration,
     required this.isCompleted,
+    required this.weekday,
   });
 }

@@ -1,10 +1,118 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/student_providers.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/guest_lock_screen.dart';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const _colorPalette = [
+  Color(0xFF166534),
+  Color(0xFF8B5CF6),
+  Color(0xFF0EA5E9),
+  Color(0xFFF97316),
+  Color(0xFFF59E0B),
+  Color(0xFF6366F1),
+  Color(0xFF10B981),
+];
+
+Color _colorFromName(String name) =>
+    _colorPalette[name.hashCode.abs() % _colorPalette.length];
+
+String _initialsFrom(String name) {
+  final parts = name.trim().split(RegExp(r'\s+'));
+  if (parts.length >= 2) {
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
+  return name.substring(0, min(2, name.length)).toUpperCase();
+}
+
+String _timeLabel(String? isoStr) {
+  if (isoStr == null || isoStr.isEmpty) return '';
+  final dt = DateTime.tryParse(isoStr)?.toLocal();
+  if (dt == null) return '';
+  final now = DateTime.now();
+  final diff = now.difference(dt);
+  if (diff.inDays == 0) {
+    final h = dt.hour;
+    final m = dt.minute.toString().padLeft(2, '0');
+    final period = h >= 12 ? 'PM' : 'AM';
+    final hour = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+    return '$hour:$m $period';
+  }
+  if (diff.inDays == 1) return 'Yesterday';
+  return '${diff.inDays}d ago';
+}
+
+// ---------------------------------------------------------------------------
+// Display model
+// ---------------------------------------------------------------------------
+
+class _Conversation {
+  final String id;
+  final String name;
+  final String lastMessage;
+  final String time;
+  final int unread;
+  final bool isGroup;
+  final String initials;
+  final Color color;
+
+  const _Conversation({
+    required this.id,
+    required this.name,
+    required this.lastMessage,
+    required this.time,
+    required this.unread,
+    required this.isGroup,
+    required this.initials,
+    required this.color,
+  });
+}
+
+_Conversation _parseConversation(Map<String, dynamic> j) {
+  final id = j['id']?.toString() ??
+      j['conversationId']?.toString() ??
+      '';
+  final name = j['name']?.toString() ??
+      j['title']?.toString() ??
+      j['teacherName']?.toString() ??
+      'Unknown';
+  final lastMessage = j['lastMessage']?.toString() ??
+      j['preview']?.toString() ??
+      j['latestMessage']?.toString() ??
+      j['message']?.toString() ??
+      '';
+  final lastAt = j['lastMessageAt']?.toString() ??
+      j['updatedAt']?.toString() ??
+      j['createdAt']?.toString();
+  final unread = (j['unreadCount'] as int?) ??
+      (j['unread'] as int?) ??
+      0;
+  final isGroup = j['isGroup'] as bool? ??
+      (j['type']?.toString() == 'group');
+
+  return _Conversation(
+    id: id,
+    name: name,
+    lastMessage: lastMessage,
+    time: _timeLabel(lastAt),
+    unread: unread,
+    isGroup: isGroup,
+    initials: _initialsFrom(name),
+    color: _colorFromName(name),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Screen
+// ---------------------------------------------------------------------------
 
 class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
@@ -17,46 +125,13 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   final _searchCtrl = TextEditingController();
   String _query = '';
 
-  static const _conversations = [
-    _Conversation(
-      name: 'Sheikh Ahmed',
-      lastMessage: 'Well done on your Tajweed practice today!',
-      time: '5:12 PM',
-      unread: 2,
-      isGroup: false,
-      initials: 'SA',
-      color: Color(0xFF166534),
-    ),
-    _Conversation(
-      name: 'Ustadha Fatima',
-      lastMessage: 'Please review Surah Al-Mulk for tomorrow',
-      time: '2:30 PM',
-      unread: 0,
-      isGroup: false,
-      initials: 'UF',
-      color: Color(0xFF8B5CF6),
-    ),
-    _Conversation(
-      name: 'Class Group - Level 2',
-      lastMessage: "Don't forget tomorrow's class is at 9 AM",
-      time: 'Yesterday',
-      unread: 5,
-      isGroup: true,
-      initials: 'CG',
-      color: Color(0xFF0EA5E9),
-    ),
-    _Conversation(
-      name: 'Ustadh Ali',
-      lastMessage: 'Good effort today. Keep it up!',
-      time: 'Monday',
-      unread: 0,
-      isGroup: false,
-      initials: 'UA',
-      color: Color(0xFFF97316),
-    ),
-  ];
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
-  List<_Conversation> get _filtered => _conversations
+  List<_Conversation> _filtered(List<_Conversation> all) => all
       .where((c) =>
           c.name.toLowerCase().contains(_query.toLowerCase()) ||
           c.lastMessage.toLowerCase().contains(_query.toLowerCase()))
@@ -71,9 +146,12 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     );
   }
 
-  void _showNewMessage(BuildContext context, AppLocalizations l) {
+  void _showNewMessage(
+      BuildContext context, AppLocalizations l, List<_Conversation> all) {
     String? selected;
     final msgCtrl = TextEditingController();
+    final teachers = all.where((c) => !c.isGroup).toList();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -90,7 +168,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
             children: [
               Center(
                 child: Container(
-                  width: 40, height: 4,
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
                     color: const Color(0xFFE5E7EB),
                     borderRadius: BorderRadius.circular(2),
@@ -104,9 +183,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
               const SizedBox(height: 20),
               DropdownButtonFormField<String>(
                 initialValue: selected,
-                decoration: InputDecoration(labelText: l.messages_sendToLabel),
-                items: _conversations
-                    .where((c) => !c.isGroup)
+                decoration:
+                    InputDecoration(labelText: l.messages_sendToLabel),
+                items: teachers
                     .map((c) => DropdownMenuItem(
                         value: c.name, child: Text(c.name)))
                     .toList(),
@@ -116,7 +195,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
               TextField(
                 controller: msgCtrl,
                 maxLines: 3,
-                decoration: InputDecoration(labelText: l.messages_messageLabel),
+                decoration:
+                    InputDecoration(labelText: l.messages_messageLabel),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -127,7 +207,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                       ? null
                       : () {
                           Navigator.pop(ctx);
-                          final conv = _conversations
+                          final conv = teachers
                               .firstWhere((c) => c.name == selected);
                           _openChat(context, conv);
                         },
@@ -142,14 +222,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
   }
 
   @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+
     if (ref.watch(isGuestProvider)) {
       return Scaffold(
         backgroundColor: AppTheme.warmBackground,
@@ -164,7 +239,35 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
         ),
       );
     }
-    final filtered = _filtered;
+
+    final convsAsync = ref.watch(conversationsProvider);
+
+    return convsAsync.when(
+      loading: () => Scaffold(
+        backgroundColor: AppTheme.warmBackground,
+        appBar: AppBar(
+          title: Text(l.messages_appBarTitle),
+          automaticallyImplyLeading: false,
+        ),
+        body: const Center(
+          child:
+              CircularProgressIndicator(color: AppTheme.primaryGreen),
+        ),
+      ),
+      error: (_, __) =>
+          _buildScaffold(context, l, []),
+      data: (raw) {
+        final all =
+            raw.map(_parseConversation).toList();
+        return _buildScaffold(context, l, all);
+      },
+    );
+  }
+
+  Widget _buildScaffold(
+      BuildContext context, AppLocalizations l, List<_Conversation> all) {
+    final filtered = _filtered(all);
+
     return Scaffold(
       backgroundColor: AppTheme.warmBackground,
       appBar: AppBar(
@@ -173,22 +276,24 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_rounded),
-            onPressed: () => _showNewMessage(context, l),
+            onPressed: () => _showNewMessage(context, l, all),
           ),
         ],
       ),
       body: Column(
         children: [
+          // Search bar
           Container(
             color: AppTheme.surfaceWhite,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 10),
             child: TextField(
               controller: _searchCtrl,
               onChanged: (v) => setState(() => _query = v),
               decoration: InputDecoration(
                 hintText: l.messages_searchHint,
-                hintStyle: const TextStyle(color: AppTheme.textSecondary),
+                hintStyle:
+                    const TextStyle(color: AppTheme.textSecondary),
                 prefixIcon: const Icon(Icons.search_rounded,
                     color: AppTheme.textSecondary),
                 suffixIcon: _query.isNotEmpty
@@ -201,12 +306,14 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
                         },
                       )
                     : null,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 10),
                 fillColor: AppTheme.warmBackground,
                 filled: true,
               ),
             ),
           ),
+          // Conversation list
           Expanded(
             child: filtered.isEmpty
                 ? _EmptyMessages(l: l)
@@ -228,6 +335,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Widgets (unchanged UI)
+// ---------------------------------------------------------------------------
 
 class _ConversationTile extends StatelessWidget {
   final _Conversation conv;
@@ -395,23 +506,4 @@ class _EmptyMessages extends StatelessWidget {
       ),
     );
   }
-}
-
-class _Conversation {
-  final String name;
-  final String lastMessage;
-  final String time;
-  final int unread;
-  final bool isGroup;
-  final String initials;
-  final Color color;
-  const _Conversation({
-    required this.name,
-    required this.lastMessage,
-    required this.time,
-    required this.unread,
-    required this.isGroup,
-    required this.initials,
-    required this.color,
-  });
 }

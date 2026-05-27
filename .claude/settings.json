@@ -35,7 +35,10 @@
       "Read(//private/tmp/**)",
       "Bash(curl -s -b /tmp/cookies.txt -H 'Authorization: Bearer 284921ecf9bffe3a2dbd265b4c84636f283ae13c236908b770197774e3f19235' https://alabraarnetwork.com/api/student/dashboard)",
       "Bash(curl -sv -b /tmp/cookies.txt -H 'Authorization: Bearer 284921ecf9bffe3a2dbd265b4c84636f283ae13c236908b770197774e3f19235' https://alabraarnetwork.com/api/student/dashboard)",
-      "Bash(curl -s -b /tmp/cookies.txt -H 'Authorization: Bearer 284921ecf9bffe3a2dbd265b4c84636f283ae13c236908b770197774e3f19235' https://alabraarnetwork.com/api/gamification/badges)"
+      "Bash(curl -s -b /tmp/cookies.txt -H 'Authorization: Bearer 284921ecf9bffe3a2dbd265b4c84636f283ae13c236908b770197774e3f19235' https://alabraarnetwork.com/api/gamification/badges)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://alabraarnetwork.com/api/webhooks/stripe)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://alabraarnetwork.com/api/stripe/webhook)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://alabraarnetwork.com/api/payments/webhook)"
     ],
     "additionalDirectories": [
       "/Users/shebelfaraharab/.claude",
