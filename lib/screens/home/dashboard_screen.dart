@@ -1,33 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:al_abraar_core/al_abraar_core.dart' show SessionModel;
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/notifications_provider.dart';
 import '../../providers/practice_history_provider.dart';
+import '../../providers/student_providers.dart' hide unreadCountProvider;
 import '../../theme/app_theme.dart';
 
-const _mockName = 'Abdullah';
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-class _LiveSession {
-  final String teacherName;
-  final String subject;
-  final String teacherInitials;
-  final Color teacherColor;
-  const _LiveSession({
-    required this.teacherName,
-    required this.subject,
-    required this.teacherInitials,
-    required this.teacherColor,
-  });
+String _formatSessionTime(String scheduledAt) {
+  final dt = DateTime.tryParse(scheduledAt)?.toLocal();
+  if (dt == null) return '';
+  final h = dt.hour;
+  final m = dt.minute.toString().padLeft(2, '0');
+  final period = h >= 12 ? 'PM' : 'AM';
+  final hour = h > 12 ? h - 12 : (h == 0 ? 12 : h);
+  return '$hour:$m $period';
 }
 
-const _mockLiveSession = _LiveSession(
-  teacherName: 'Sheikh Ahmed',
-  subject: 'Quran Recitation — Level 2',
-  teacherInitials: 'SA',
-  teacherColor: Color(0xFF166534),
-);
+String _sessionLabel(SessionModel s) {
+  final title = s.title?.isNotEmpty == true ? s.title! : 'Quran Session';
+  final teacher = s.teacherName?.isNotEmpty == true
+      ? 'with ${s.teacherName}'
+      : '';
+  final time = _formatSessionTime(s.scheduledAt);
+  return '$title${ teacher.isNotEmpty ? ' $teacher' : ''}${time.isNotEmpty ? ' at $time' : ''}';
+}
+
+// ---------------------------------------------------------------------------
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -41,11 +46,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final user = ref.read(authStateProvider).valueOrNull?.user;
     final name = user?.name;
     if (name != null && name.isNotEmpty) return name.split(' ').first;
-    return _mockName;
+    return '';
   }
 
   Future<void> _refresh() async {
-    await Future.delayed(const Duration(seconds: 1));
+    ref.invalidate(upcomingSessionsProvider);
+    ref.invalidate(userStatsProvider);
+    ref.invalidate(notificationsProvider);
+    // wait for the first provider to settle
+    await ref.read(upcomingSessionsProvider.future).catchError((_) => <SessionModel>[]);
   }
 
   @override
@@ -53,6 +62,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final l = AppLocalizations.of(context);
     final name = _getStudentName();
     final stats = ref.watch(userStatsProvider);
+    final sessionsAsync = ref.watch(upcomingSessionsProvider);
+
+    // Derive live + next session from the sessions list.
+    final sessions = sessionsAsync.valueOrNull ?? [];
+    final liveSession = sessions
+        .where((s) => s.status.toUpperCase() == 'IN_PROGRESS')
+        .firstOrNull;
+    final nextSession = sessions
+        .where((s) => s.status.toUpperCase() == 'SCHEDULED')
+        .firstOrNull;
 
     final actions = [
       _ActionItem(icon: Icons.mic_rounded,            label: l.dashboard_action_aiPractice,  color: const Color(0xFF8B5CF6), route: '/practice/setup'),
@@ -90,14 +109,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        Text(
-                          name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.textDark,
+                        if (name.isNotEmpty)
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.textDark,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -134,24 +154,25 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                     ],
                   ),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.primaryGreen,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : 'A',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
+                  if (name.isNotEmpty)
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(
+                        color: AppTheme.primaryGreen,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          name[0].toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -159,8 +180,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               padding: const EdgeInsets.all(16),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  _LiveNowBanner(session: _mockLiveSession, l: l),
-                  const SizedBox(height: 16),
+                  // Live banner — only shown when a session is IN_PROGRESS
+                  if (liveSession != null) ...[
+                    _LiveNowBanner(session: liveSession, l: l),
+                    const SizedBox(height: 16),
+                  ],
                   Row(
                     children: [
                       Expanded(child: _StreakCard(streak: stats.streak, l: l)),
@@ -168,8 +192,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Expanded(child: _PointsCard(points: stats.totalPoints, l: l)),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  _TodaysClassCard(l: l),
+                  // Today's class — only shown when a SCHEDULED session exists
+                  if (nextSession != null) ...[
+                    const SizedBox(height: 16),
+                    _TodaysClassCard(session: nextSession, l: l),
+                  ],
                   const SizedBox(height: 20),
                   Text(
                     l.dashboard_quickActions,
@@ -285,8 +312,9 @@ class _PointsCard extends StatelessWidget {
 }
 
 class _TodaysClassCard extends StatelessWidget {
+  final SessionModel session;
   final AppLocalizations l;
-  const _TodaysClassCard({required this.l});
+  const _TodaysClassCard({required this.session, required this.l});
 
   @override
   Widget build(BuildContext context) {
@@ -330,9 +358,9 @@ class _TodaysClassCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Quran Recitation with Sheikh Ahmed at 5:00 PM',
-                  style: TextStyle(
+                Text(
+                  _sessionLabel(session),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -459,18 +487,32 @@ class _ActionItem {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _LiveNowBanner extends StatelessWidget {
-  final _LiveSession session;
+  final SessionModel session;
   final AppLocalizations l;
   const _LiveNowBanner({required this.session, required this.l});
 
   @override
   Widget build(BuildContext context) {
+    final teacherName = session.teacherName?.isNotEmpty == true
+        ? session.teacherName!
+        : 'Teacher';
+    final subject = session.title?.isNotEmpty == true
+        ? session.title!
+        : 'Live Session';
+    final initials = teacherName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .map((p) => p.isNotEmpty ? p[0] : '')
+        .take(2)
+        .join()
+        .toUpperCase();
+
     return GestureDetector(
       onTap: () => context.push('/live/viewer', extra: {
-        'teacherName': session.teacherName,
-        'subject': session.subject,
-        'teacherInitials': session.teacherInitials,
-        'teacherColor': session.teacherColor.toARGB32(),
+        'teacherName': teacherName,
+        'subject': subject,
+        'teacherInitials': initials,
+        'teacherColor': const Color(0xFF166534).toARGB32(),
       }),
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -515,7 +557,7 @@ class _LiveNowBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    session.teacherName,
+                    teacherName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -524,7 +566,7 @@ class _LiveNowBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    session.subject,
+                    subject,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 12,
