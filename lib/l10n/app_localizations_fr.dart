@@ -1339,4 +1339,73 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get quran_player_listenAgain => 'Réécouter';
+
+  @override
+  String get onboarding_skip => 'Passer';
+
+  @override
+  String get onboarding_next => 'Suivant';
+
+  @override
+  String get onboarding_getStarted => 'Commencer';
+
+  @override
+  String get onboarding_heroTitle => 'Al-Abraar';
+
+  @override
+  String get onboarding_heroArabic => 'الأبرار';
+
+  @override
+  String get onboarding_heroTagline => 'Apprendre · Réciter · Progresser';
+
+  @override
+  String get onboarding_whoTitle => 'Qui va utiliser l\'application ?';
+
+  @override
+  String get onboarding_childLabel => 'Enfant / Élève';
+
+  @override
+  String get onboarding_childSub => '5 à 17 ans';
+
+  @override
+  String get onboarding_adultLabel => 'Adulte / Parent';
+
+  @override
+  String get onboarding_adultSub => '18 ans et plus';
+
+  @override
+  String get onboarding_feat1Title => 'Apprendre le Coran';
+
+  @override
+  String get onboarding_feat1Desc =>
+      'Leçons progressives avec des enseignants certifiés.';
+
+  @override
+  String get onboarding_feat2Title => 'Sessions en direct';
+
+  @override
+  String get onboarding_feat2Desc =>
+      'Rejoignez des classes interactives de partout.';
+
+  @override
+  String get onboarding_feat3Title => 'Suivre les progrès';
+
+  @override
+  String get onboarding_feat3Desc =>
+      'Badges, classements et bulletins détaillés.';
+
+  @override
+  String get onboarding_authTitle => 'Prêt à commencer ?';
+
+  @override
+  String get onboarding_createAccount => 'Créer un compte';
+
+  @override
+  String get onboarding_signIn => 'Se connecter';
+
+  @override
+  String get onboarding_browseFirst => 'Explorer d\'abord';
+
+  @override
+  String get settings_replayIntro => 'Introduction de l\'app';
 }

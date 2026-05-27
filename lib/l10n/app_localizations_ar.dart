@@ -1328,4 +1328,70 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get quran_player_listenAgain => 'استمع مجدداً';
+
+  @override
+  String get onboarding_skip => 'تخطي';
+
+  @override
+  String get onboarding_next => 'التالي';
+
+  @override
+  String get onboarding_getStarted => 'ابدأ الآن';
+
+  @override
+  String get onboarding_heroTitle => 'Al-Abraar';
+
+  @override
+  String get onboarding_heroArabic => 'الأبرار';
+
+  @override
+  String get onboarding_heroTagline => 'تعلّم · اقرأ · انمُ';
+
+  @override
+  String get onboarding_whoTitle => 'من سيستخدم التطبيق؟';
+
+  @override
+  String get onboarding_childLabel => 'طفل / طالب';
+
+  @override
+  String get onboarding_childSub => 'من 5 إلى 17 سنة';
+
+  @override
+  String get onboarding_adultLabel => 'بالغ / والد';
+
+  @override
+  String get onboarding_adultSub => '18 فما فوق';
+
+  @override
+  String get onboarding_feat1Title => 'تعلّم القرآن';
+
+  @override
+  String get onboarding_feat1Desc => 'دروس منهجية مع معلمين معتمدين.';
+
+  @override
+  String get onboarding_feat2Title => 'جلسات مباشرة';
+
+  @override
+  String get onboarding_feat2Desc => 'انضم إلى فصول تفاعلية من أي مكان.';
+
+  @override
+  String get onboarding_feat3Title => 'تتبع التقدم';
+
+  @override
+  String get onboarding_feat3Desc => 'شارات ولوحات صدارة وتقارير مفصلة.';
+
+  @override
+  String get onboarding_authTitle => 'هل أنت مستعد للبدء؟';
+
+  @override
+  String get onboarding_createAccount => 'إنشاء حساب';
+
+  @override
+  String get onboarding_signIn => 'تسجيل الدخول';
+
+  @override
+  String get onboarding_browseFirst => 'تصفح أولاً';
+
+  @override
+  String get settings_replayIntro => 'مقدمة التطبيق';
 }

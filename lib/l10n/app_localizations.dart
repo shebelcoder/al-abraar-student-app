@@ -2519,6 +2519,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Listen Again'**
   String get quran_player_listenAgain;
+
+  /// Skip onboarding button
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get onboarding_skip;
+
+  /// Next page button
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get onboarding_next;
+
+  /// Page 1 CTA button
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get onboarding_getStarted;
+
+  /// Hero page app name
+  ///
+  /// In en, this message translates to:
+  /// **'Al-Abraar'**
+  String get onboarding_heroTitle;
+
+  /// Hero page Arabic name
+  ///
+  /// In en, this message translates to:
+  /// **'الأبرار'**
+  String get onboarding_heroArabic;
+
+  /// Hero page tagline
+  ///
+  /// In en, this message translates to:
+  /// **'Learn · Recite · Grow'**
+  String get onboarding_heroTagline;
+
+  /// Page 2 heading
+  ///
+  /// In en, this message translates to:
+  /// **'Who will be using the app?'**
+  String get onboarding_whoTitle;
+
+  /// Child card label
+  ///
+  /// In en, this message translates to:
+  /// **'Child / Student'**
+  String get onboarding_childLabel;
+
+  /// Child card sub-label
+  ///
+  /// In en, this message translates to:
+  /// **'Ages 5–17'**
+  String get onboarding_childSub;
+
+  /// Adult card label
+  ///
+  /// In en, this message translates to:
+  /// **'Adult / Parent'**
+  String get onboarding_adultLabel;
+
+  /// Adult card sub-label
+  ///
+  /// In en, this message translates to:
+  /// **'18 and above'**
+  String get onboarding_adultSub;
+
+  /// Feature 1 title
+  ///
+  /// In en, this message translates to:
+  /// **'Learn Quran'**
+  String get onboarding_feat1Title;
+
+  /// Feature 1 description
+  ///
+  /// In en, this message translates to:
+  /// **'Step-by-step lessons from certified teachers.'**
+  String get onboarding_feat1Desc;
+
+  /// Feature 2 title
+  ///
+  /// In en, this message translates to:
+  /// **'Live Sessions'**
+  String get onboarding_feat2Title;
+
+  /// Feature 2 description
+  ///
+  /// In en, this message translates to:
+  /// **'Join interactive classes from anywhere.'**
+  String get onboarding_feat2Desc;
+
+  /// Feature 3 title
+  ///
+  /// In en, this message translates to:
+  /// **'Track Progress'**
+  String get onboarding_feat3Title;
+
+  /// Feature 3 description
+  ///
+  /// In en, this message translates to:
+  /// **'Badges, leaderboards, and detailed report cards.'**
+  String get onboarding_feat3Desc;
+
+  /// Page 4 heading
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to start?'**
+  String get onboarding_authTitle;
+
+  /// Create account button
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get onboarding_createAccount;
+
+  /// Sign in button
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get onboarding_signIn;
+
+  /// Browse as guest button
+  ///
+  /// In en, this message translates to:
+  /// **'Browse first'**
+  String get onboarding_browseFirst;
+
+  /// Settings row to replay onboarding
+  ///
+  /// In en, this message translates to:
+  /// **'App Intro'**
+  String get settings_replayIntro;
 }
 
 class _AppLocalizationsDelegate

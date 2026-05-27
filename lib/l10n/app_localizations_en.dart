@@ -1326,4 +1326,72 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quran_player_listenAgain => 'Listen Again';
+
+  @override
+  String get onboarding_skip => 'Skip';
+
+  @override
+  String get onboarding_next => 'Next';
+
+  @override
+  String get onboarding_getStarted => 'Get Started';
+
+  @override
+  String get onboarding_heroTitle => 'Al-Abraar';
+
+  @override
+  String get onboarding_heroArabic => 'الأبرار';
+
+  @override
+  String get onboarding_heroTagline => 'Learn · Recite · Grow';
+
+  @override
+  String get onboarding_whoTitle => 'Who will be using the app?';
+
+  @override
+  String get onboarding_childLabel => 'Child / Student';
+
+  @override
+  String get onboarding_childSub => 'Ages 5–17';
+
+  @override
+  String get onboarding_adultLabel => 'Adult / Parent';
+
+  @override
+  String get onboarding_adultSub => '18 and above';
+
+  @override
+  String get onboarding_feat1Title => 'Learn Quran';
+
+  @override
+  String get onboarding_feat1Desc =>
+      'Step-by-step lessons from certified teachers.';
+
+  @override
+  String get onboarding_feat2Title => 'Live Sessions';
+
+  @override
+  String get onboarding_feat2Desc => 'Join interactive classes from anywhere.';
+
+  @override
+  String get onboarding_feat3Title => 'Track Progress';
+
+  @override
+  String get onboarding_feat3Desc =>
+      'Badges, leaderboards, and detailed report cards.';
+
+  @override
+  String get onboarding_authTitle => 'Ready to start?';
+
+  @override
+  String get onboarding_createAccount => 'Create Account';
+
+  @override
+  String get onboarding_signIn => 'Sign In';
+
+  @override
+  String get onboarding_browseFirst => 'Browse first';
+
+  @override
+  String get settings_replayIntro => 'App Intro';
 }

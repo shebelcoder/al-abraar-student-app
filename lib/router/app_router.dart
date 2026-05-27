@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
+import '../providers/onboarding_provider.dart';
+import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/auth/forgot_password_screen.dart';
 import '../screens/auth/login_screen.dart';
@@ -42,6 +44,13 @@ class _RouterNotifier extends ChangeNotifier {
   final Ref _ref;
 
   String? redirect(BuildContext context, GoRouterState state) {
+    final path = state.uri.path;
+
+    // Onboarding guard — runs before auth check.
+    final seen = _ref.read(onboardingSeenProvider);
+    if (!seen && path != '/onboarding') return '/onboarding';
+    if (seen && path == '/onboarding') return '/splash';
+
     final authAsync = _ref.read(authStateProvider);
     if (authAsync.isLoading) return null;
 
@@ -49,7 +58,6 @@ class _RouterNotifier extends ChangeNotifier {
     final isLoggedIn = authState?.isLoggedIn ?? false;
     final isGuest = authState?.isGuest ?? false;
     final hasSession = isLoggedIn || isGuest;
-    final path = state.uri.path;
     final isAuthRoute =
         path == '/login' || path == '/register' || path == '/splash';
 
@@ -74,6 +82,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: notifier.redirect,
     routes: [
+      GoRoute(
+        path: '/onboarding',
+        builder: (_, __) => const OnboardingScreen(),
+      ),
       GoRoute(
         path: '/splash',
         builder: (_, __) => const SplashScreen(),

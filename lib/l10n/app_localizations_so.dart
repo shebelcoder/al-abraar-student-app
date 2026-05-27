@@ -1331,4 +1331,73 @@ class AppLocalizationsSo extends AppLocalizations {
 
   @override
   String get quran_player_listenAgain => 'Mar kale Dhageyso';
+
+  @override
+  String get onboarding_skip => 'Bood';
+
+  @override
+  String get onboarding_next => 'Xiga';
+
+  @override
+  String get onboarding_getStarted => 'Bilow';
+
+  @override
+  String get onboarding_heroTitle => 'Al-Abraar';
+
+  @override
+  String get onboarding_heroArabic => 'الأبرار';
+
+  @override
+  String get onboarding_heroTagline => 'Baro · Akri · Kobci';
+
+  @override
+  String get onboarding_whoTitle => 'Cidda isticmaali doonta app-ka?';
+
+  @override
+  String get onboarding_childLabel => 'Ilmo / Arday';
+
+  @override
+  String get onboarding_childSub => 'Da\'da 5–17';
+
+  @override
+  String get onboarding_adultLabel => 'Qof weyn / Waalid';
+
+  @override
+  String get onboarding_adultSub => '18 iyo ka weyn';
+
+  @override
+  String get onboarding_feat1Title => 'Baro Qur\'aanka';
+
+  @override
+  String get onboarding_feat1Desc =>
+      'Casharro talaabo-talaabo oo lala bixiyo macallimiinta.';
+
+  @override
+  String get onboarding_feat2Title => 'Fadhiyada Tooska';
+
+  @override
+  String get onboarding_feat2Desc =>
+      'Ku biir fasalada xiriirka ah meel kasta oo aad joogto.';
+
+  @override
+  String get onboarding_feat3Title => 'La Raac Horumarkaaga';
+
+  @override
+  String get onboarding_feat3Desc =>
+      'Astaanta, jadwalka, iyo warbixinnada faahfaahsan.';
+
+  @override
+  String get onboarding_authTitle => 'Ma diyaar baad u tahay?';
+
+  @override
+  String get onboarding_createAccount => 'Samee Xisaab';
+
+  @override
+  String get onboarding_signIn => 'Gal';
+
+  @override
+  String get onboarding_browseFirst => 'Hore u eeg';
+
+  @override
+  String get settings_replayIntro => 'Hordhaca App-ka';
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/onboarding_provider.dart';
 import '../../theme/app_theme.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -23,6 +24,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _obscurePassword = true;
   bool _isParentRegistering = false;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final userType = ref.read(userTypeProvider);
+    if (userType == 'adult') _isParentRegistering = true;
+    if (userType == 'child') _isParentRegistering = false;
+  }
 
   @override
   void dispose() {

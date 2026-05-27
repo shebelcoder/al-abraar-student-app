@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/locale_provider.dart';
+import 'providers/onboarding_provider.dart';
 import 'router/app_router.dart';
+import 'services/onboarding_prefs.dart';
 import 'theme/app_theme.dart';
 
-// Global singleton — created before runApp so it's always ready.
+// Global singletons — created before runApp so they're always ready.
 late final PersistCookieJar appCookieJar;
 
 void main() async {
@@ -19,6 +21,9 @@ void main() async {
     storage: FileStorage('${dir.path}/.al_abraar_cookies/'),
     ignoreExpires: false,
   );
+
+  // Pre-load onboarding flag so the router redirect is synchronous.
+  onboardingSeen = await OnboardingPrefs.hasSeenOnboarding();
 
   runApp(const ProviderScope(child: AlAbraarStudentApp()));
 }

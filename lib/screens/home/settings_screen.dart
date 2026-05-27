@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../services/onboarding_prefs.dart';
 import '../../theme/app_theme.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -180,6 +181,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: l.settings_termsOfService,
             onTap: () => _showTextModal(
                 context, l.settings_termsOfService, l.settings_termsBody),
+          ),
+          _ActionTile(
+            icon: Icons.auto_awesome_rounded,
+            color: AppTheme.primaryGreen,
+            title: l.settings_replayIntro,
+            onTap: () async {
+              await OnboardingPrefs.clearSeen();
+              if (context.mounted) context.go('/onboarding');
+            },
           ),
 
           // Danger zone
